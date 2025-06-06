@@ -48,5 +48,5 @@ define('MAX_FILE_SIZE', 5 * 1024 * 1024);
 define('ALLOWED_FILE_TYPES', ['jpg', 'jpeg', 'png', 'gif']);
 
 // Currency Configuration
-define('CURRENCY_SYMBOL', '₪');
+define('CURRENCY_SYMBOL', '$');
 define('CURRENCY_NAME', 'NESOP Points'); 
