@@ -13,11 +13,11 @@ $data = [
 
 echo "<h3>1. Configuration Check:</h3>";
 echo "Server Host: " . $_SERVER['HTTP_HOST'] . "<br>";
-echo "API URL: http://" . $_SERVER['HTTP_HOST'] . "/api/auth/login<br>";
+echo "API URL: https://" . $_SERVER['HTTP_HOST'] . "/api/auth/login<br>";
 echo "Request Data: <pre>" . json_encode($data, JSON_PRETTY_PRINT) . "</pre><br>";
 
 // Make the API request
-$ch = curl_init('http://' . $_SERVER['HTTP_HOST'] . '/api/auth/login');
+$ch = curl_init('https://' . $_SERVER['HTTP_HOST'] . '/api/auth/login');
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -27,6 +27,8 @@ curl_setopt($ch, CURLOPT_HTTPHEADER, [
 curl_setopt($ch, CURLOPT_TIMEOUT, 10); // 10 second timeout
 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); // 5 second connection timeout
 curl_setopt($ch, CURLOPT_VERBOSE, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For testing only - remove in production
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); // For testing only - remove in production
 
 // Create a temporary file handle for CURL debug output
 $verbose = fopen('php://temp', 'w+');

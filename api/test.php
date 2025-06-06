@@ -9,6 +9,9 @@ echo json_encode([
     'server_info' => [
         'php_version' => PHP_VERSION,
         'server_software' => $_SERVER['SERVER_SOFTWARE'],
-        'request_method' => $_SERVER['REQUEST_METHOD']
+        'request_method' => $_SERVER['REQUEST_METHOD'],
+        'is_https' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'protocol' => $_SERVER['SERVER_PROTOCOL'],
+        'port' => $_SERVER['SERVER_PORT']
     ]
 ]); 
