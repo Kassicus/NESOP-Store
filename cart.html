@@ -8,7 +8,234 @@
 </head>
 <body>
   <div id="cart-app"></div>
-  <script src="scripts/cart.js"></script>
-  <script src="scripts/utils.js"></script>
+  <script>
+    function getCart() {
+      return JSON.parse(localStorage.getItem('nesop_cart') || '[]');
+    }
+    function setCart(cart) {
+      localStorage.setItem('nesop_cart', JSON.stringify(cart));
+    }
+    function removeFromCart(idx) {
+      const cart = getCart();
+      cart.splice(idx, 1);
+      setCart(cart);
+      renderCart();
+    }
+    function getCurrentUser() {
+      return localStorage.getItem('nesop_user') || '';
+    }
+    function getUserBalance(users, username) {
+      const user = users.find(u => u.username === username);
+      return user ? parseFloat(user.balance) : 0;
+    }
+    function setUserBalance(users, username, newBalance) {
+      const idx = users.findIndex(u => u.username === username);
+      if (idx !== -1) {
+        users[idx].balance = newBalance;
+      }
+      return users;
+    }
+    function downloadOrderFile(orderText, username) {
+      const blob = new Blob([orderText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `order_${username}_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }
+    function renderCart() {
+      const cart = getCart();
+      let total = 0;
+      let itemsHtml = '';
+      if (cart.length === 0) {
+        itemsHtml = '<p>Your cart is empty.</p>';
+      } else {
+        itemsHtml = cart.map((item, idx) => {
+          total += parseFloat(item.price);
+          return `
+            <div class="cart-item">
+              <img src="${item.image}" alt="${item.item}" class="cart-item-img" />
+              <div class="cart-item-info">
+                <div class="cart-item-title">${item.item}</div>
+                <div class="cart-item-desc">${item.description}</div>
+                <div class="cart-item-price">${item.price} ESOP Bucks</div>
+                <button class="remove-cart-btn" onclick="removeFromCart(${idx})">Remove</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      document.getElementById('cart-app').innerHTML = `
+        <header class="store-header">
+          <div class="container">
+            <h1 class="store-title">Your Cart</h1>
+            <a href="index.html" class="logout-btn">Back to Store</a>
+          </div>
+        </header>
+        <main>
+          <div class="container">
+            <div class="cart-list">${itemsHtml}</div>
+            <div class="cart-total-row">
+              <span class="cart-total-label">Total:</span>
+              <span class="cart-total-value">${total} ESOP Bucks</span>
+            </div>
+            <button class="checkout-btn" id="checkout-btn" ${cart.length === 0 ? 'disabled' : ''}>Proceed to Purchase</button>
+            <div id="checkout-message" style="margin-top:1rem;"></div>
+          </div>
+        </main>
+      `;
+      if (cart.length > 0) {
+        document.getElementById('checkout-btn').onclick = function() {
+          // Fetch users.csv, update balance, and generate order file
+          fetch('data/users.csv')
+            .then(res => res.text())
+            .then(csv => {
+              const lines = csv.trim().split('\n');
+              const headers = lines[0].split(',');
+              const users = lines.slice(1).map(line => {
+                const values = line.split(',');
+                const obj = {};
+                headers.forEach((header, i) => {
+                  obj[header.trim()] = values[i].trim();
+                });
+                return obj;
+              });
+              const username = getCurrentUser();
+              let balance = getUserBalance(users, username);
+              if (balance < total) {
+                document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Insufficient ESOP Bucks for this purchase.</span>';
+                return;
+              }
+              // Deduct balance
+              balance -= total;
+              setUserBalance(users, username, balance);
+              // Generate order text
+              const now = new Date();
+              const orderText = `Order for: ${username}\nDate: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n${cart.map(i => `- ${i.item} (${i.price} ESOP Bucks)`).join('\n')}\n\nTotal: ${total} ESOP Bucks\n`;
+              // Download order file
+              downloadOrderFile(orderText, username);
+              // Persist balance to backend
+              fetch('/api/update-balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, newBalance: balance })
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.success) {
+                  setCart([]);
+                  renderCart();
+                  document.getElementById('checkout-message').innerHTML = '<span style="color:green;">Order placed! Your order file has been downloaded and your balance updated.</span>';
+                } else {
+                  document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Order placed, but failed to update balance on server.</span>';
+                }
+              })
+              .catch(() => {
+                document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Order placed, but failed to update balance on server.</span>';
+              });
+            });
+        };
+      }
+    }
+    renderCart();
+  </script>
+  <style>
+    .cart-list {
+      margin-bottom: 2rem;
+    }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      margin-bottom: 1.2rem;
+      padding: 1rem;
+    }
+    .cart-item-img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      background: #e3f2fd;
+      border-radius: 6px;
+      margin-right: 1.5rem;
+    }
+    .cart-item-info {
+      flex: 1;
+    }
+    .cart-item-title {
+      font-weight: bold;
+      color: #1976d2;
+      font-size: 1.1rem;
+      margin-bottom: 0.2rem;
+    }
+    .cart-item-desc {
+      color: #555;
+      font-size: 0.97rem;
+      margin-bottom: 0.5rem;
+    }
+    .cart-item-price {
+      font-weight: bold;
+      color: #1976d2;
+      margin-bottom: 0.5rem;
+    }
+    .remove-cart-btn {
+      background: #e57373;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 0.3rem 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+      margin-top: 0.2rem;
+    }
+    .remove-cart-btn:hover {
+      background: #c62828;
+    }
+    .cart-total-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+    }
+    .cart-total-label {
+      font-weight: bold;
+      color: #222;
+    }
+    .cart-total-value {
+      color: #1976d2;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .checkout-btn {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 0.7rem 1.5rem;
+      font-weight: bold;
+      font-size: 1.1rem;
+      cursor: not-allowed;
+      opacity: 0.7;
+      width: 100%;
+      margin-bottom: 2rem;
+    }
+    .checkout-btn:enabled {
+      cursor: pointer;
+      opacity: 1;
+      background: #1976d2;
+    }
+    .checkout-btn:enabled:hover {
+      background: #125ea7;
+    }
+  </style>
 </body>
 </html> 

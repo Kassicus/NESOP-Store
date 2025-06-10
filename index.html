@@ -7,7 +7,18 @@
   <link rel="stylesheet" href="styles/main.css"/>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <div class="user-info">
+      <span>Welcome, ${username}</span>
+      ${username === 'admin' ? '<a href="admin.html" class="admin-link">Admin Panel</a>' : ''}
+      <a href="cart.html" class="cart-link" title="View Cart">
+        <svg class="cart-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1976d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h2l3.6 7.59a2 2 0 0 0 1.7 1.18h9.72a2 2 0 0 0 1.98-1.7l1.38-7.07H6.16"/></svg>
+        <span id="cart-count-badge" class="cart-count-badge">0</span>
+      </a>
+      <button id="logout-btn" class="logout-btn">Logout</button>
+    </div>
+  </div>
+  <script src="scripts/csv.js"></script>
   <script src="scripts/auth.js"></script>
   <script src="scripts/store.js"></script>
   <script src="scripts/utils.js"></script>

@@ -1,12 +1,7 @@
 // Handles login, logout, and session management
 // Placeholder for authentication logic 
 
-// Simulated users data (would be loaded from CSV in a real app)
-const users = [
-  { username: 'alice', password: 'pass123', balance: 100 },
-  { username: 'bob', password: 'pass456', balance: 50 },
-  { username: 'admin', password: 'admin123', balance: 200 },
-];
+let users = [];
 
 function showLoginForm() {
   document.getElementById('app').innerHTML = `
@@ -15,7 +10,7 @@ function showLoginForm() {
       <form id="login-form">
         <input type="text" id="username" placeholder="Username" required />
         <input type="password" id="password" placeholder="Password" required />
-        <button type="submit">Login</button>
+        <button type="submit" class="login-btn">Login</button>
         <div id="login-error" style="color:red;margin-top:8px;"></div>
       </form>
     </div>
@@ -48,4 +43,23 @@ function checkLogin() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', checkLogin); 
+function loadUsersAndStart() {
+  fetch('data/users.csv')
+    .then(res => res.text())
+    .then(csv => {
+      users = window.parseCSV(csv);
+      checkLogin();
+    })
+    .catch(err => {
+      document.getElementById('app').innerHTML = '<p style="color:red;">Failed to load users data.</p>';
+      console.error('Error loading users.csv:', err);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadUsersAndStart);
+
+// Export a logout function for use in other scripts
+window.nesopLogout = function() {
+  localStorage.removeItem('nesop_user');
+  window.location.href = 'index.html';
+}; 

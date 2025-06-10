@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - NESOP Store</title>
+  <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    .admin-panel-container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08); padding: 2rem; }
+    .admin-panel-container h2 { color: #1976d2; margin-top: 0; }
+    .csv-edit-area { width: 100%; min-height: 200px; font-family: monospace; font-size: 1rem; margin-bottom: 1rem; border: 1px solid #b3c6e0; border-radius: 4px; padding: 0.5rem; }
+    .admin-btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.5rem 1.2rem; font-weight: bold; font-size: 1rem; cursor: pointer; margin-right: 1rem; margin-bottom: 1rem; }
+    .admin-btn:disabled { background: #b3c6e0; cursor: not-allowed; }
+    .admin-section { margin-bottom: 2.5rem; }
+    .admin-message { margin-top: 0.5rem; font-size: 1rem; }
+    .admin-nav { margin-bottom: 2rem; }
+    .admin-nav a { color: #1976d2; text-decoration: none; font-weight: bold; margin-right: 1.5rem; }
+    .admin-nav a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="admin-panel-container">
+    <div class="admin-nav">
+      <a href="index.html">Back to Store</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+    <h2>Admin Panel</h2>
+    <div class="admin-section">
+      <h3>Edit users.csv</h3>
+      <textarea id="users-csv" class="csv-edit-area"></textarea><br/>
+      <button class="admin-btn" onclick="saveCSV('users.csv')">Save users.csv</button>
+      <span id="users-msg" class="admin-message"></span>
+    </div>
+    <div class="admin-section">
+      <h3>Edit items.csv</h3>
+      <textarea id="items-csv" class="csv-edit-area"></textarea><br/>
+      <button class="admin-btn" onclick="saveCSV('items.csv')">Save items.csv</button>
+      <span id="items-msg" class="admin-message"></span>
+    </div>
+  </div>
+  <script>
+    // Only allow access if logged in as admin
+    if (localStorage.getItem('nesop_user') !== 'admin') {
+      alert('Admin access only.');
+      window.location.href = 'index.html';
+    }
+    function logout() {
+      localStorage.removeItem('nesop_user');
+      window.location.href = 'index.html';
+    }
+    function loadCSV(filename, textareaId, msgId) {
+      fetch(`/api/csv/${filename}?username=admin`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.content) {
+            document.getElementById(textareaId).value = data.content;
+            document.getElementById(msgId).textContent = '';
+          } else {
+            document.getElementById(msgId).textContent = data.error || 'Failed to load.';
+          }
+        })
+        .catch(() => {
+          document.getElementById(msgId).textContent = 'Failed to load.';
+        });
+    }
+    function saveCSV(filename) {
+      const textareaId = filename === 'users.csv' ? 'users-csv' : 'items-csv';
+      const msgId = filename === 'users.csv' ? 'users-msg' : 'items-msg';
+      const content = document.getElementById(textareaId).value;
+      fetch(`/api/csv/${filename}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'admin', content })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById(msgId).textContent = 'Saved!';
+        } else {
+          document.getElementById(msgId).textContent = data.error || 'Failed to save.';
+        }
+      })
+      .catch(() => {
+        document.getElementById(msgId).textContent = 'Failed to save.';
+      });
+    }
+    // Load CSVs on page load
+    loadCSV('users.csv', 'users-csv', 'users-msg');
+    loadCSV('items.csv', 'items-csv', 'items-msg');
+  </script>
+</body>
+</html> 

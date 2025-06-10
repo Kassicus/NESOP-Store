@@ -1,3 +1,5 @@
-item_id,name,price,image_url,description
-1,Company Mug,10,assets/images/mug.png,Classic mug with logo
-2,T-Shirt,20,assets/images/tshirt.png,Blue company t-shirt 
+item,description,price,image
+Company Mug,Classic mug with logo,10,assets/images/placeholder.png
+T-Shirt,Blue company t-shirt,20,assets/images/placeholder.png
+Notebook,Hardcover notebook with logo,8,assets/images/placeholder.png
+Water Bottle,Stainless steel bottle,15,assets/images/placeholder.png 
