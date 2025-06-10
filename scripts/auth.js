@@ -6,13 +6,16 @@ let users = [];
 function showLoginForm() {
   document.getElementById('app').innerHTML = `
     <div class="login-container">
-      <h2>Login</h2>
-      <form id="login-form">
-        <input type="text" id="username" placeholder="Username" required />
-        <input type="password" id="password" placeholder="Password" required />
-        <button type="submit" class="login-btn">Login</button>
-        <div id="login-error" style="color:red;margin-top:8px;"></div>
+      <h2 style="text-align:center;">NESOP Store</h2>
+      <form id="login-form" style="display:flex;flex-direction:column;align-items:center;">
+        <input type="text" id="username" placeholder="Username" required style="margin-bottom:0.7em;width:85%;" />
+        <input type="password" id="password" placeholder="Password" required style="margin-bottom:0.7em;width:85%;" />
+        <button type="submit" class="login-btn" style="margin-bottom:0.7em;width:85%;">Login</button>
+        <div id="login-error" style="color:red;margin-top:8px;text-align:center;"></div>
       </form>
+      <div style="text-align:center;margin-top:1.5em;">
+        <a href="register.html" style="color:#1976d2;text-decoration:none;font-size:1.05em;">Register Here</a>
+      </div>
     </div>
   `;
   document.getElementById('login-form').onsubmit = function(e) {

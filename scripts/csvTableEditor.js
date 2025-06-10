@@ -78,22 +78,24 @@
       tbody.appendChild(tr);
     });
     // Add row button
-    const trAdd = document.createElement('tr');
-    for (let i = 0; i < headers.length; ++i) {
-      trAdd.appendChild(document.createElement('td'));
+    if (containerId !== 'users-table-editor') {
+      const trAdd = document.createElement('tr');
+      for (let i = 0; i < headers.length; ++i) {
+        trAdd.appendChild(document.createElement('td'));
+      }
+      const tdAdd = document.createElement('td');
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+';
+      addBtn.className = 'editor-action-btn add';
+      addBtn.title = 'Add row';
+      addBtn.onclick = function() {
+        rows.push(Array(headers.length).fill(''));
+        createTable(headers, rows, containerId);
+      };
+      tdAdd.appendChild(addBtn);
+      trAdd.appendChild(tdAdd);
+      tbody.appendChild(trAdd);
     }
-    const tdAdd = document.createElement('td');
-    const addBtn = document.createElement('button');
-    addBtn.textContent = '+';
-    addBtn.className = 'editor-action-btn add';
-    addBtn.title = 'Add row';
-    addBtn.onclick = function() {
-      rows.push(Array(headers.length).fill(''));
-      createTable(headers, rows, containerId);
-    };
-    tdAdd.appendChild(addBtn);
-    trAdd.appendChild(tdAdd);
-    tbody.appendChild(trAdd);
     table.appendChild(tbody);
     container.appendChild(table);
   }
