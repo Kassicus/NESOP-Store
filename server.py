@@ -39,6 +39,33 @@ def update_balance():
 
     return jsonify({'success': True})
 
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    if not username or not password:
+        return jsonify({'error': 'Username and password required.'}), 400
+    # Check for duplicate username
+    with open(USERS_CSV, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row['username'] == username:
+                return jsonify({'error': 'Username already exists.'}), 409
+    # Ensure file ends with newline before appending
+    with open(USERS_CSV, 'rb+') as f:
+        f.seek(0, 2)
+        if f.tell() > 0:
+            f.seek(-1, 2)
+            last_char = f.read(1)
+            if last_char != b'\n':
+                f.write(b'\n')
+    # Append new user
+    with open(USERS_CSV, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow([username, password, 0])
+    return jsonify({'success': True})
+
 # --- Admin CSV Management Endpoints ---
 
 @app.route('/api/csv/<filename>', methods=['GET'])

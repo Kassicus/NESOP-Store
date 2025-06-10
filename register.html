@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register - NESOP Store</title>
+  <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    .register-container { max-width: 400px; margin: 60px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08); padding: 2rem; }
+    .register-container h2 { color: #1976d2; margin-top: 0; }
+    .register-form input { width: 100%; margin-bottom: 1rem; padding: 0.7rem; border: 1px solid #b3c6e0; border-radius: 4px; font-size: 1rem; }
+    .register-btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.7rem 1.2rem; font-weight: bold; font-size: 1rem; cursor: pointer; width: 100%; }
+    .register-btn:disabled { background: #b3c6e0; cursor: not-allowed; }
+    .register-link { display: block; margin-top: 1rem; text-align: center; color: #1976d2; text-decoration: none; }
+    .register-link:hover { text-decoration: underline; }
+    .register-error { color: #d32f2f; margin-bottom: 1rem; text-align: center; }
+    .register-success { color: #388e3c; margin-bottom: 1rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="register-container">
+    <h2>Create Account</h2>
+    <form id="register-form" class="register-form">
+      <input type="text" id="reg-username" placeholder="Username" required />
+      <input type="password" id="reg-password" placeholder="Password" required />
+      <button type="submit" class="register-btn">Register</button>
+      <div id="register-error" class="register-error"></div>
+      <div id="register-success" class="register-success"></div>
+    </form>
+    <a href="index.html" class="register-link">Back to Login</a>
+  </div>
+  <script src="scripts/register.js"></script>
+</body>
+</html> 

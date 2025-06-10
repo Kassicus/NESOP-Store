@@ -27,17 +27,19 @@
     <h2>Admin Panel</h2>
     <div class="admin-section">
       <h3>Edit users.csv</h3>
-      <textarea id="users-csv" class="csv-edit-area"></textarea><br/>
-      <button class="admin-btn" onclick="saveCSV('users.csv')">Save users.csv</button>
+      <div id="users-table-editor"></div>
+      <div style="color:#888;font-size:0.95em;margin-bottom:0.5em;">(Password column is hidden for security.)</div>
+      <button class="admin-btn" onclick="saveCSVTable('users.csv')">Save users.csv</button>
       <span id="users-msg" class="admin-message"></span>
     </div>
     <div class="admin-section">
       <h3>Edit items.csv</h3>
-      <textarea id="items-csv" class="csv-edit-area"></textarea><br/>
-      <button class="admin-btn" onclick="saveCSV('items.csv')">Save items.csv</button>
+      <div id="items-table-editor"></div>
+      <button class="admin-btn" onclick="saveCSVTable('items.csv')">Save items.csv</button>
       <span id="items-msg" class="admin-message"></span>
     </div>
   </div>
+  <script src="scripts/csvTableEditor.js"></script>
   <script>
     // Only allow access if logged in as admin
     if (localStorage.getItem('nesop_user') !== 'admin') {
@@ -48,45 +50,9 @@
       localStorage.removeItem('nesop_user');
       window.location.href = 'index.html';
     }
-    function loadCSV(filename, textareaId, msgId) {
-      fetch(`/api/csv/${filename}?username=admin`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.content) {
-            document.getElementById(textareaId).value = data.content;
-            document.getElementById(msgId).textContent = '';
-          } else {
-            document.getElementById(msgId).textContent = data.error || 'Failed to load.';
-          }
-        })
-        .catch(() => {
-          document.getElementById(msgId).textContent = 'Failed to load.';
-        });
-    }
-    function saveCSV(filename) {
-      const textareaId = filename === 'users.csv' ? 'users-csv' : 'items-csv';
-      const msgId = filename === 'users.csv' ? 'users-msg' : 'items-msg';
-      const content = document.getElementById(textareaId).value;
-      fetch(`/api/csv/${filename}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', content })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById(msgId).textContent = 'Saved!';
-        } else {
-          document.getElementById(msgId).textContent = data.error || 'Failed to save.';
-        }
-      })
-      .catch(() => {
-        document.getElementById(msgId).textContent = 'Failed to save.';
-      });
-    }
-    // Load CSVs on page load
-    loadCSV('users.csv', 'users-csv', 'users-msg');
-    loadCSV('items.csv', 'items-csv', 'items-msg');
+    // Load CSVs on page load using the new table editor
+    window.initCSVTableEditor('users.csv', 'users-table-editor', 'users-msg');
+    window.initCSVTableEditor('items.csv', 'items-table-editor', 'items-msg');
   </script>
 </body>
 </html> 

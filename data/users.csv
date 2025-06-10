@@ -1,4 +1,5 @@
 username,password,balance
 alice,pass123,100
 bob,pass456,50
-admin,admin123,455
+admin,admin123,400
+kason,test,0
