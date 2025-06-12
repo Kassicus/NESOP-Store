@@ -66,7 +66,7 @@ function renderItems(items) {
   if (!container) return;
   container.innerHTML = items.map((item, idx) => `
     <div class="product-card">
-      <img src="assets/images/placeholder.png" alt="${item.item}" class="product-img" />
+      <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="product-img" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
       <div class="product-info">
         <h3 class="product-name">${item.item}</h3>
         <p class="product-desc">${item.description}</p>
