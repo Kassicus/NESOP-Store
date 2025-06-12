@@ -1,17 +1,34 @@
 import sqlite3
+import os
+import logging
 
-DB_PATH = 'nesop_store.db'
+# Get the absolute path to the database file
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'nesop_store.db'))
+
+# Add logging to help debug database connection issues
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def get_db_connection():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        return conn
+    except Exception as e:
+        logger.error(f"Failed to connect to database at {DB_PATH}: {str(e)}")
+        raise
 
 def get_user(username):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT username, password, balance, is_admin FROM users WHERE username = ?', (username,))
-    user = c.fetchone()
-    conn.close()
-    return user  # Returns tuple or None
+    conn = get_db_connection()
+    try:
+        c = conn.cursor()
+        c.execute('SELECT username, password, balance, is_admin FROM users WHERE username = ?', (username,))
+        user = c.fetchone()
+        return user
+    finally:
+        conn.close()
 
 def add_user(username, password, balance, is_admin=0):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('INSERT INTO users (username, password, balance, is_admin) VALUES (?, ?, ?, ?)', 
               (username, password, balance, is_admin))
@@ -19,14 +36,14 @@ def add_user(username, password, balance, is_admin=0):
     conn.close()
 
 def update_balance(username, new_balance):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('UPDATE users SET balance = ? WHERE username = ?', (new_balance, username))
     conn.commit()
     conn.close()
 
 def get_all_users():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('SELECT username, password, balance, is_admin FROM users')
     users = c.fetchall()
@@ -34,7 +51,7 @@ def get_all_users():
     return users
 
 def update_user(username, password=None, balance=None, is_admin=None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     if password is not None and balance is not None and is_admin is not None:
         c.execute('UPDATE users SET password = ?, balance = ?, is_admin = ? WHERE username = ?', 
@@ -55,14 +72,14 @@ def update_user(username, password=None, balance=None, is_admin=None):
     conn.close()
 
 def delete_user(username):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('DELETE FROM users WHERE username = ?', (username,))
     conn.commit()
     conn.close()
 
 def is_admin(username):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('SELECT is_admin FROM users WHERE username = ?', (username,))
     result = c.fetchone()
@@ -71,7 +88,7 @@ def is_admin(username):
 
 # --- Item CRUD ---
 def get_items():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('SELECT item, description, price, image FROM items')
     items = c.fetchall()
@@ -79,7 +96,7 @@ def get_items():
     return items
 
 def get_item(item_name):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('SELECT item, description, price, image FROM items WHERE item = ?', (item_name,))
     item = c.fetchone()
@@ -87,14 +104,14 @@ def get_item(item_name):
     return item
 
 def add_item(item, description, price, image=None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('INSERT INTO items (item, description, price, image) VALUES (?, ?, ?, ?)', (item, description, price, image))
     conn.commit()
     conn.close()
 
 def update_item(item, description=None, price=None, image=None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     if description is not None and price is not None and image is not None:
         c.execute('UPDATE items SET description = ?, price = ?, image = ? WHERE item = ?', (description, price, image, item))
@@ -114,7 +131,7 @@ def update_item(item, description=None, price=None, image=None):
     conn.close()
 
 def delete_item(item):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
     c.execute('DELETE FROM items WHERE item = ?', (item,))
     conn.commit()

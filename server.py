@@ -17,19 +17,14 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Log the upload folder path
 logging.info(f"Upload folder path: {UPLOAD_FOLDER}")
 
-# Check if directory exists and is writable
-if not os.path.exists(UPLOAD_FOLDER):
-    try:
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        logging.info(f"Created upload directory: {UPLOAD_FOLDER}")
-    except Exception as e:
-        logging.error(f"Failed to create upload directory: {str(e)}")
-        # Continue execution - the directory might already exist
+# Only log if directory exists and is writable
+if os.path.exists(UPLOAD_FOLDER):
+    if os.access(UPLOAD_FOLDER, os.W_OK):
+        logging.info(f"Upload directory exists and is writable: {UPLOAD_FOLDER}")
+    else:
+        logging.error(f"Upload directory exists but is not writable: {UPLOAD_FOLDER}")
 else:
-    logging.info(f"Upload directory exists: {UPLOAD_FOLDER}")
-    # Check if directory is writable
-    if not os.access(UPLOAD_FOLDER, os.W_OK):
-        logging.error(f"Upload directory is not writable: {UPLOAD_FOLDER}")
+    logging.error(f"Upload directory does not exist: {UPLOAD_FOLDER}")
 
 @app.route('/api/update-balance', methods=['POST'])
 def update_balance():
