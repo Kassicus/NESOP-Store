@@ -141,22 +141,13 @@
   <script>
     // Check if user is admin
     const currentUser = localStorage.getItem('nesop_user');
+    const isAdmin = localStorage.getItem('nesop_user_admin') === 'true';
     if (!currentUser) {
       alert('Please log in first.');
       window.location.href = 'index.html';
-    } else {
-      fetch('/api/check-admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.is_admin) {
-          alert('Admin access only.');
-          window.location.href = 'index.html';
-        }
-      });
+    } else if (!isAdmin) {
+      alert('Admin access only.');
+      window.location.href = 'index.html';
     }
     
     function logout() {

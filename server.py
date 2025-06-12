@@ -3,10 +3,21 @@ import db_utils
 import logging
 from datetime import datetime
 import os
+import ldap
 
 app = Flask(__name__, static_folder='.')
 app.config['UPLOAD_FOLDER'] = 'assets/images'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# LDAP configuration
+app.config['LDAP_HOST'] = 'your-ad-server.domain.com'
+app.config['LDAP_BASE_DN'] = 'DC=domain,DC=com'
+app.config['LDAP_USER_DN'] = 'OU=Users'
+app.config['LDAP_GROUP_DN'] = 'OU=Groups'
+app.config['LDAP_USER_RDN_ATTR'] = 'cn'
+app.config['LDAP_USER_LOGIN_ATTR'] = 'sAMAccountName'
+app.config['LDAP_BIND_USER_DN'] = 'CN=Service Account,OU=Service Accounts,DC=domain,DC=com'
+app.config['LDAP_BIND_USER_PASSWORD'] = 'service_account_password'
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -185,6 +196,41 @@ def serve_static(path):
 @app.route('/assets/images/<path:filename>')
 def serve_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+def authenticate_ldap(username, password):
+    try:
+        ldap_conn = ldap.initialize(f"ldap://{app.config['LDAP_HOST']}")
+        ldap_conn.protocol_version = ldap.VERSION3
+        user_dn = f"CN={username},{app.config['LDAP_USER_DN']},{app.config['LDAP_BASE_DN']}"
+        ldap_conn.simple_bind_s(user_dn, password)
+        search_filter = f"(&(objectClass=user)(sAMAccountName={username}))"
+        result = ldap_conn.search_s(app.config['LDAP_BASE_DN'], ldap.SCOPE_SUBTREE, search_filter)
+        admin_group = "CN=NESOP-Admins,OU=Groups,DC=domain,DC=com"
+        is_admin = False
+        for dn, attrs in result:
+            if b'memberOf' in attrs:
+                if admin_group.encode() in attrs[b'memberOf']:
+                    is_admin = True
+        ldap_conn.unbind()
+        return {"authenticated": True, "is_admin": is_admin}
+    except ldap.INVALID_CREDENTIALS:
+        return {"authenticated": False, "error": "Invalid credentials"}
+    except Exception as e:
+        return {"authenticated": False, "error": str(e)}
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    auth_result = authenticate_ldap(username, password)
+    if auth_result["authenticated"]:
+        user = db_utils.get_user(username)
+        if not user:
+            db_utils.add_user(username, "AD_USER", 0, 1 if auth_result["is_admin"] else 0)
+        return jsonify({"success": True, "user": username, "isAdmin": auth_result["is_admin"]})
+    else:
+        return jsonify({"success": False, "error": auth_result.get("error", "Authentication failed")})
 
 if __name__ == '__main__':
     app.run(port=8000, debug=True) 

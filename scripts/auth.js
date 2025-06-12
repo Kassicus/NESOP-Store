@@ -13,26 +13,25 @@ function showLoginForm() {
         <button type="submit" class="login-btn" style="margin-bottom:0.7em;width:85%;">Login</button>
         <div id="login-error" style="color:red;margin-top:8px;text-align:center;"></div>
       </form>
-      <div style="text-align:center;margin-top:1.5em;">
-        <a href="register.html" style="color:#1976d2;text-decoration:none;font-size:1.05em;">Register Here</a>
-      </div>
     </div>
   `;
   document.getElementById('login-form').onsubmit = function(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
-    fetch('/api/users')
+    fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    })
       .then(res => res.json())
       .then(data => {
-        users = data.users || [];
-        const user = users.find(u => u.username === username && u.password === password);
-        if (user) {
-          localStorage.setItem('nesop_user', username);
-          localStorage.setItem('nesop_user_admin', user.is_admin ? 'true' : 'false');
+        if (data.success) {
+          localStorage.setItem('nesop_user', data.user);
+          localStorage.setItem('nesop_user_admin', data.isAdmin ? 'true' : 'false');
           window.location.reload();
         } else {
-          document.getElementById('login-error').textContent = 'Invalid username or password.';
+          document.getElementById('login-error').textContent = data.error || 'Invalid username or password.';
         }
       })
       .catch(() => {
