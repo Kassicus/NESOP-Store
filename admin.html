@@ -21,6 +21,50 @@
     .admin-table td { background: #fff; }
     .admin-table input { width: 100%; }
     .admin-table .action-btn { margin: 0 0.2em; }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 24px rgba(25, 118, 210, 0.18);
+      padding: 2rem 2.5rem;
+      min-width: 320px;
+      max-width: 95vw;
+      z-index: 1001;
+      position: relative;
+      animation: modalIn 0.2s;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal input {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #b3c6e0;
+      font-size: 1rem;
+    }
+    .modal .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+    .blurred {
+      filter: blur(4px) grayscale(0.1);
+      pointer-events: none;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -43,6 +87,7 @@
       <span id="items-msg" class="admin-message"></span>
     </div>
   </div>
+  <div id="modal-root" style="display:none;"></div>
   <script>
     if (localStorage.getItem('nesop_user') !== 'admin') {
       alert('Admin access only.');
@@ -91,15 +136,28 @@
           fetchUsers();
         });
     }
+    function showModal(contentHtml) {
+      document.getElementById('modal-root').innerHTML = `<div class='modal-overlay' onclick='closeModal(event)'><div class='modal' onclick='event.stopPropagation()'>${contentHtml}</div></div>`;
+      document.getElementById('modal-root').style.display = 'block';
+      document.querySelector('.admin-panel-container').classList.add('blurred');
+    }
+    function closeModal(e) {
+      if (e && e.target && !e.target.classList.contains('modal-overlay')) return;
+      document.getElementById('modal-root').style.display = 'none';
+      document.getElementById('modal-root').innerHTML = '';
+      document.querySelector('.admin-panel-container').classList.remove('blurred');
+    }
     function showAddUserForm() {
-      const html = `<div id="add-user-form" style="margin-bottom:1em;">
-        <input id="add-username" placeholder="Username" />
-        <input id="add-password" placeholder="Password" type="password" />
-        <input id="add-balance" placeholder="Balance" type="number" value="0" />
-        <button onclick="addUser()">Add</button>
-        <button onclick="cancelAddUser()">Cancel</button>
-      </div>`;
-      document.getElementById('users-table').insertAdjacentHTML('beforebegin', html);
+      const html = `
+        <h3>Add User</h3>
+        <input id='add-username' placeholder='Username' />
+        <input id='add-password' placeholder='Password' type='password' />
+        <input id='add-balance' placeholder='Balance' type='number' value='0' />
+        <div class='modal-actions'>
+          <button onclick='addUser()'>Add</button>
+          <button onclick='closeModal()'>Cancel</button>
+        </div>`;
+      showModal(html);
     }
     function addUser() {
       const username = document.getElementById('add-username').value.trim();
@@ -108,12 +166,9 @@
       fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, balance }) })
         .then(res => res.json()).then(data => {
           document.getElementById('users-msg').textContent = data.success ? 'User added.' : (data.error || 'Failed to add user.');
-          document.getElementById('add-user-form').remove();
+          closeModal();
           fetchUsers();
         });
-    }
-    function cancelAddUser() {
-      document.getElementById('add-user-form').remove();
     }
     // --- Items CRUD ---
     function fetchItems() {
@@ -155,14 +210,16 @@
         });
     }
     function showAddItemForm() {
-      const html = `<div id="add-item-form" style="margin-bottom:1em;">
-        <input id="add-item" placeholder="Item name" />
-        <input id="add-description" placeholder="Description" />
-        <input id="add-price" placeholder="Price" type="number" value="0" />
-        <button onclick="addItem()">Add</button>
-        <button onclick="cancelAddItem()">Cancel</button>
-      </div>`;
-      document.getElementById('items-table').insertAdjacentHTML('beforebegin', html);
+      const html = `
+        <h3>Add Item</h3>
+        <input id='add-item' placeholder='Item name' />
+        <input id='add-description' placeholder='Description' />
+        <input id='add-price' placeholder='Price' type='number' value='0' />
+        <div class='modal-actions'>
+          <button onclick='addItem()'>Add</button>
+          <button onclick='closeModal()'>Cancel</button>
+        </div>`;
+      showModal(html);
     }
     function addItem() {
       const item = document.getElementById('add-item').value.trim();
@@ -171,12 +228,9 @@
       fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, description, price }) })
         .then(res => res.json()).then(data => {
           document.getElementById('items-msg').textContent = data.success ? 'Item added.' : (data.error || 'Failed to add item.');
-          document.getElementById('add-item-form').remove();
+          closeModal();
           fetchItems();
         });
-    }
-    function cancelAddItem() {
-      document.getElementById('add-item-form').remove();
     }
     // Initial load
     fetchUsers();
