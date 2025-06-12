@@ -1,5 +1,5 @@
 // Handles login, logout, and session management
-// Placeholder for authentication logic 
+// Refactored for API-based authentication
 
 let users = [];
 
@@ -22,13 +22,21 @@ function showLoginForm() {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-      localStorage.setItem('nesop_user', username);
-      window.location.reload();
-    } else {
-      document.getElementById('login-error').textContent = 'Invalid username or password.';
-    }
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        users = data.users || [];
+        const user = users.find(u => u.username === username && u.password === password);
+        if (user) {
+          localStorage.setItem('nesop_user', username);
+          window.location.reload();
+        } else {
+          document.getElementById('login-error').textContent = 'Invalid username or password.';
+        }
+      })
+      .catch(() => {
+        document.getElementById('login-error').textContent = 'Failed to contact server.';
+      });
   };
 }
 
@@ -47,16 +55,8 @@ function checkLogin() {
 }
 
 function loadUsersAndStart() {
-  fetch('data/users.csv')
-    .then(res => res.text())
-    .then(csv => {
-      users = window.parseCSV(csv);
-      checkLogin();
-    })
-    .catch(err => {
-      document.getElementById('app').innerHTML = '<p style="color:red;">Failed to load users data.</p>';
-      console.error('Error loading users.csv:', err);
-    });
+  // No longer needed, just check login
+  checkLogin();
 }
 
 document.addEventListener('DOMContentLoaded', loadUsersAndStart);

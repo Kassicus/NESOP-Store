@@ -1,5 +1,5 @@
 // Handles loading items, displaying storefront, and adding to cart
-// Placeholder for storefront logic 
+// Refactored for API-based data access
 
 function getCart() {
   return JSON.parse(localStorage.getItem('nesop_cart') || '[]');
@@ -20,13 +20,13 @@ function updateCartCount() {
 }
 
 function showStore(username) {
-  // Fetch both items and user balance
+  // Fetch both items and user balance from API
   Promise.all([
-    fetch('data/items.csv').then(res => res.text()),
-    fetch('data/users.csv').then(res => res.text())
-  ]).then(([itemsCsv, usersCsv]) => {
-    const items = window.parseCSV(itemsCsv);
-    const users = window.parseCSV(usersCsv);
+    fetch('/api/items').then(res => res.json()),
+    fetch('/api/users').then(res => res.json())
+  ]).then(([itemsData, usersData]) => {
+    const items = itemsData.items || [];
+    const users = usersData.users || [];
     const user = users.find(u => u.username === username);
     const balance = user ? user.balance : '0';
     document.getElementById('app').innerHTML = `
@@ -66,7 +66,7 @@ function renderItems(items) {
   if (!container) return;
   container.innerHTML = items.map((item, idx) => `
     <div class="product-card">
-      <img src="${item.image}" alt="${item.item}" class="product-img" />
+      <img src="assets/images/placeholder.png" alt="${item.item}" class="product-img" />
       <div class="product-info">
         <h3 class="product-name">${item.item}</h3>
         <p class="product-desc">${item.description}</p>

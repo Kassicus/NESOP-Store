@@ -59,7 +59,7 @@
           total += parseFloat(item.price);
           return `
             <div class="cart-item">
-              <img src="${item.image}" alt="${item.item}" class="cart-item-img" />
+              <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="cart-item-img" />
               <div class="cart-item-info">
                 <div class="cart-item-title">${item.item}</div>
                 <div class="cart-item-desc">${item.description}</div>
@@ -91,20 +91,11 @@
       `;
       if (cart.length > 0) {
         document.getElementById('checkout-btn').onclick = function() {
-          // Fetch users.csv, update balance, and generate order file
-          fetch('data/users.csv')
-            .then(res => res.text())
-            .then(csv => {
-              const lines = csv.trim().split('\n');
-              const headers = lines[0].split(',');
-              const users = lines.slice(1).map(line => {
-                const values = line.split(',');
-                const obj = {};
-                headers.forEach((header, i) => {
-                  obj[header.trim()] = values[i].trim();
-                });
-                return obj;
-              });
+          // Fetch users from API, update balance, and generate order file
+          fetch('/api/users')
+            .then(res => res.json())
+            .then(data => {
+              const users = data.users || [];
               const username = getCurrentUser();
               let balance = getUserBalance(users, username);
               if (balance < total) {

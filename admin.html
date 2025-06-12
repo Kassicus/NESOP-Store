@@ -8,7 +8,6 @@
   <style>
     .admin-panel-container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08); padding: 2rem; }
     .admin-panel-container h2 { color: #1976d2; margin-top: 0; }
-    .csv-edit-area { width: 100%; min-height: 200px; font-family: monospace; font-size: 1rem; margin-bottom: 1rem; border: 1px solid #b3c6e0; border-radius: 4px; padding: 0.5rem; }
     .admin-btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.5rem 1.2rem; font-weight: bold; font-size: 1rem; cursor: pointer; margin-right: 1rem; margin-bottom: 1rem; }
     .admin-btn:disabled { background: #b3c6e0; cursor: not-allowed; }
     .admin-section { margin-bottom: 2.5rem; }
@@ -16,6 +15,12 @@
     .admin-nav { margin-bottom: 2rem; }
     .admin-nav a { color: #1976d2; text-decoration: none; font-weight: bold; margin-right: 1.5rem; }
     .admin-nav a:hover { text-decoration: underline; }
+    .admin-table th, .admin-table td { padding: 0.5rem 0.7rem; border: 1px solid #b3c6e0; }
+    .admin-table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+    .admin-table th { background: #e3f2fd; color: #1976d2; font-weight: bold; }
+    .admin-table td { background: #fff; }
+    .admin-table input { width: 100%; }
+    .admin-table .action-btn { margin: 0 0.2em; }
   </style>
 </head>
 <body>
@@ -26,22 +31,19 @@
     </div>
     <h2>Admin Panel</h2>
     <div class="admin-section">
-      <h3>Edit users.csv</h3>
-      <div id="users-table-editor"></div>
-      <div style="color:#888;font-size:0.95em;margin-bottom:0.5em;">(Password column is hidden for security.)</div>
-      <button class="admin-btn" onclick="saveCSVTable('users.csv')">Save users.csv</button>
+      <h3>Users</h3>
+      <div id="users-table"></div>
+      <button class="admin-btn" onclick="showAddUserForm()">Add User</button>
       <span id="users-msg" class="admin-message"></span>
     </div>
     <div class="admin-section">
-      <h3>Edit items.csv</h3>
-      <div id="items-table-editor"></div>
-      <button class="admin-btn" onclick="saveCSVTable('items.csv')">Save items.csv</button>
+      <h3>Items</h3>
+      <div id="items-table"></div>
+      <button class="admin-btn" onclick="showAddItemForm()">Add Item</button>
       <span id="items-msg" class="admin-message"></span>
     </div>
   </div>
-  <script src="scripts/csvTableEditor.js"></script>
   <script>
-    // Only allow access if logged in as admin
     if (localStorage.getItem('nesop_user') !== 'admin') {
       alert('Admin access only.');
       window.location.href = 'index.html';
@@ -50,9 +52,135 @@
       localStorage.removeItem('nesop_user');
       window.location.href = 'index.html';
     }
-    // Load CSVs on page load using the new table editor
-    window.initCSVTableEditor('users.csv', 'users-table-editor', 'users-msg');
-    window.initCSVTableEditor('items.csv', 'items-table-editor', 'items-msg');
+    // --- Users CRUD ---
+    function fetchUsers() {
+      fetch('/api/users').then(res => res.json()).then(data => {
+        renderUsersTable(data.users || []);
+      });
+    }
+    function renderUsersTable(users) {
+      let html = `<table class="admin-table"><thead><tr><th>Username</th><th>Password</th><th>Balance</th><th>Actions</th></tr></thead><tbody>`;
+      users.forEach(u => {
+        html += `<tr>
+          <td>${u.username}</td>
+          <td><input type="password" value="${u.password}" onchange="updateUserField('${u.username}', 'password', this.value)"></td>
+          <td><input type="number" value="${u.balance}" onchange="updateUserField('${u.username}', 'balance', this.value)"></td>
+          <td>
+            <button class="action-btn" onclick="deleteUser('${u.username}')">Delete</button>
+          </td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+      document.getElementById('users-table').innerHTML = html;
+    }
+    function updateUserField(username, field, value) {
+      const payload = { username };
+      if (field === 'password') payload.password = value;
+      if (field === 'balance') payload.balance = parseInt(value);
+      fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(res => res.json()).then(data => {
+          document.getElementById('users-msg').textContent = data.success ? 'User updated.' : (data.error || 'Failed to update user.');
+          fetchUsers();
+        });
+    }
+    function deleteUser(username) {
+      if (!confirm('Delete user ' + username + '?')) return;
+      fetch('/api/users', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) })
+        .then(res => res.json()).then(data => {
+          document.getElementById('users-msg').textContent = data.success ? 'User deleted.' : (data.error || 'Failed to delete user.');
+          fetchUsers();
+        });
+    }
+    function showAddUserForm() {
+      const html = `<div id="add-user-form" style="margin-bottom:1em;">
+        <input id="add-username" placeholder="Username" />
+        <input id="add-password" placeholder="Password" type="password" />
+        <input id="add-balance" placeholder="Balance" type="number" value="0" />
+        <button onclick="addUser()">Add</button>
+        <button onclick="cancelAddUser()">Cancel</button>
+      </div>`;
+      document.getElementById('users-table').insertAdjacentHTML('beforebegin', html);
+    }
+    function addUser() {
+      const username = document.getElementById('add-username').value.trim();
+      const password = document.getElementById('add-password').value;
+      const balance = parseInt(document.getElementById('add-balance').value) || 0;
+      fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, balance }) })
+        .then(res => res.json()).then(data => {
+          document.getElementById('users-msg').textContent = data.success ? 'User added.' : (data.error || 'Failed to add user.');
+          document.getElementById('add-user-form').remove();
+          fetchUsers();
+        });
+    }
+    function cancelAddUser() {
+      document.getElementById('add-user-form').remove();
+    }
+    // --- Items CRUD ---
+    function fetchItems() {
+      fetch('/api/items').then(res => res.json()).then(data => {
+        renderItemsTable(data.items || []);
+      });
+    }
+    function renderItemsTable(items) {
+      let html = `<table class="admin-table"><thead><tr><th>Item</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>`;
+      items.forEach(i => {
+        html += `<tr>
+          <td>${i.item}</td>
+          <td><input value="${i.description}" onchange="updateItemField('${i.item}', 'description', this.value)"></td>
+          <td><input type="number" value="${i.price}" onchange="updateItemField('${i.item}', 'price', this.value)"></td>
+          <td>
+            <button class="action-btn" onclick="deleteItem('${i.item}')">Delete</button>
+          </td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+      document.getElementById('items-table').innerHTML = html;
+    }
+    function updateItemField(item, field, value) {
+      const payload = { item };
+      if (field === 'description') payload.description = value;
+      if (field === 'price') payload.price = parseFloat(value);
+      fetch('/api/items', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(res => res.json()).then(data => {
+          document.getElementById('items-msg').textContent = data.success ? 'Item updated.' : (data.error || 'Failed to update item.');
+          fetchItems();
+        });
+    }
+    function deleteItem(item) {
+      if (!confirm('Delete item ' + item + '?')) return;
+      fetch('/api/items', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item }) })
+        .then(res => res.json()).then(data => {
+          document.getElementById('items-msg').textContent = data.success ? 'Item deleted.' : (data.error || 'Failed to delete item.');
+          fetchItems();
+        });
+    }
+    function showAddItemForm() {
+      const html = `<div id="add-item-form" style="margin-bottom:1em;">
+        <input id="add-item" placeholder="Item name" />
+        <input id="add-description" placeholder="Description" />
+        <input id="add-price" placeholder="Price" type="number" value="0" />
+        <button onclick="addItem()">Add</button>
+        <button onclick="cancelAddItem()">Cancel</button>
+      </div>`;
+      document.getElementById('items-table').insertAdjacentHTML('beforebegin', html);
+    }
+    function addItem() {
+      const item = document.getElementById('add-item').value.trim();
+      const description = document.getElementById('add-description').value;
+      const price = parseFloat(document.getElementById('add-price').value) || 0;
+      fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, description, price }) })
+        .then(res => res.json()).then(data => {
+          document.getElementById('items-msg').textContent = data.success ? 'Item added.' : (data.error || 'Failed to add item.');
+          document.getElementById('add-item-form').remove();
+          fetchItems();
+        });
+    }
+    function cancelAddItem() {
+      document.getElementById('add-item-form').remove();
+    }
+    // Initial load
+    fetchUsers();
+    fetchItems();
   </script>
 </body>
 </html> 
