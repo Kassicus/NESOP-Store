@@ -25,6 +25,16 @@ try:
 except FileNotFoundError:
     print("No items.csv found, just creating the table.")
 
+# Add image column if it doesn't exist
+try:
+    c.execute('ALTER TABLE items ADD COLUMN image TEXT')
+    print("Added 'image' column to items table.")
+except sqlite3.OperationalError as e:
+    if 'duplicate column name' in str(e):
+        print("'image' column already exists.")
+    else:
+        raise
+
 conn.commit()
 conn.close()
 print("Items table created and populated (if CSV was present).")

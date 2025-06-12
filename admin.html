@@ -106,11 +106,12 @@
     function renderUsersTable(users) {
       let html = `<table class="admin-table"><thead><tr><th>Username</th><th>Password</th><th>Balance</th><th>Actions</th></tr></thead><tbody>`;
       users.forEach(u => {
-        html += `<tr>
+        html += `<tr id="user-row-${u.username}">
           <td>${u.username}</td>
-          <td><input type="password" value="${u.password}" onchange="updateUserField('${u.username}', 'password', this.value)"></td>
-          <td><input type="number" value="${u.balance}" onchange="updateUserField('${u.username}', 'balance', this.value)"></td>
+          <td>••••••••</td>
+          <td>${u.balance}</td>
           <td>
+            <button class="action-btn" onclick="showEditUserForm('${u.username}')">Edit</button>
             <button class="action-btn" onclick="deleteUser('${u.username}')">Delete</button>
           </td>
         </tr>`;
@@ -118,13 +119,31 @@
       html += `</tbody></table>`;
       document.getElementById('users-table').innerHTML = html;
     }
-    function updateUserField(username, field, value) {
-      const payload = { username };
-      if (field === 'password') payload.password = value;
-      if (field === 'balance') payload.balance = parseInt(value);
+    function showEditUserForm(username) {
+      fetch('/api/users').then(res => res.json()).then(data => {
+        const user = (data.users || []).find(u => u.username === username);
+        if (!user) return;
+        const html = `
+          <h3>Edit User</h3>
+          <input id='edit-username' value='${user.username}' disabled />
+          <input id='edit-password' type='password' value='${user.password}' />
+          <input id='edit-balance' type='number' value='${user.balance}' />
+          <div class='modal-actions'>
+            <button onclick='saveEditUser()'>Save</button>
+            <button onclick='closeModal()'>Cancel</button>
+          </div>`;
+        showModal(html);
+      });
+    }
+    function saveEditUser() {
+      const username = document.getElementById('edit-username').value;
+      const password = document.getElementById('edit-password').value;
+      const balance = parseInt(document.getElementById('edit-balance').value);
+      const payload = { username, password, balance };
       fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         .then(res => res.json()).then(data => {
           document.getElementById('users-msg').textContent = data.success ? 'User updated.' : (data.error || 'Failed to update user.');
+          closeModal();
           fetchUsers();
         });
     }
@@ -177,13 +196,16 @@
       });
     }
     function renderItemsTable(items) {
-      let html = `<table class="admin-table"><thead><tr><th>Item</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>`;
+      let html = `<table class="admin-table"><thead><tr><th>Image</th><th>Item</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>`;
       items.forEach(i => {
-        html += `<tr>
+        let imgSrc = i.image ? i.image : 'assets/images/placeholder.png';
+        html += `<tr id="item-row-${i.item}">
+          <td><img src="${imgSrc}" alt="${i.item}" style="max-width:60px;max-height:60px;object-fit:cover;border-radius:6px;" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" /></td>
           <td>${i.item}</td>
-          <td><input value="${i.description}" onchange="updateItemField('${i.item}', 'description', this.value)"></td>
-          <td><input type="number" value="${i.price}" onchange="updateItemField('${i.item}', 'price', this.value)"></td>
+          <td><input value="${i.description}" disabled /></td>
+          <td><input type="number" value="${i.price}" disabled /></td>
           <td>
+            <button class="action-btn" onclick="showEditItemForm('${i.item}')">Edit</button>
             <button class="action-btn" onclick="deleteItem('${i.item}')">Delete</button>
           </td>
         </tr>`;
@@ -191,13 +213,40 @@
       html += `</tbody></table>`;
       document.getElementById('items-table').innerHTML = html;
     }
-    function updateItemField(item, field, value) {
-      const payload = { item };
-      if (field === 'description') payload.description = value;
-      if (field === 'price') payload.price = parseFloat(value);
-      fetch('/api/items', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    function showEditItemForm(itemName) {
+      // Find the item in the current table (assume fetchItems has just run)
+      fetch('/api/items').then(res => res.json()).then(data => {
+        const item = (data.items || []).find(i => i.item === itemName);
+        if (!item) return;
+        const html = `
+          <h3>Edit Item</h3>
+          <img src='${item.image ? item.image : 'assets/images/placeholder.png'}' alt='${item.item}' style='max-width:80px;max-height:80px;object-fit:cover;border-radius:6px;margin-bottom:1em;' onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
+          <input id='edit-item' value='${item.item}' disabled />
+          <input id='edit-description' value='${item.description}' />
+          <input id='edit-price' type='number' value='${item.price}' />
+          <input id='edit-image' type='file' accept='image/*' />
+          <div class='modal-actions'>
+            <button onclick='saveEditItem()'>Save</button>
+            <button onclick='closeModal()'>Cancel</button>
+          </div>`;
+        showModal(html);
+      });
+    }
+    function saveEditItem() {
+      const item = document.getElementById('edit-item').value;
+      const description = document.getElementById('edit-description').value;
+      const price = parseFloat(document.getElementById('edit-price').value) || 0;
+      const imageInput = document.getElementById('edit-image');
+      const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const formData = new FormData();
+      formData.append('item', item);
+      formData.append('description', description);
+      formData.append('price', price);
+      if (imageFile) formData.append('image', imageFile);
+      fetch('/api/items', { method: 'PUT', body: formData })
         .then(res => res.json()).then(data => {
           document.getElementById('items-msg').textContent = data.success ? 'Item updated.' : (data.error || 'Failed to update item.');
+          closeModal();
           fetchItems();
         });
     }
@@ -215,6 +264,7 @@
         <input id='add-item' placeholder='Item name' />
         <input id='add-description' placeholder='Description' />
         <input id='add-price' placeholder='Price' type='number' value='0' />
+        <input id='add-image' type='file' accept='image/*' />
         <div class='modal-actions'>
           <button onclick='addItem()'>Add</button>
           <button onclick='closeModal()'>Cancel</button>
@@ -225,7 +275,14 @@
       const item = document.getElementById('add-item').value.trim();
       const description = document.getElementById('add-description').value;
       const price = parseFloat(document.getElementById('add-price').value) || 0;
-      fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item, description, price }) })
+      const imageInput = document.getElementById('add-image');
+      const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const formData = new FormData();
+      formData.append('item', item);
+      formData.append('description', description);
+      formData.append('price', price);
+      if (imageFile) formData.append('image', imageFile);
+      fetch('/api/items', { method: 'POST', body: formData })
         .then(res => res.json()).then(data => {
           document.getElementById('items-msg').textContent = data.success ? 'Item added.' : (data.error || 'Failed to add item.');
           closeModal();

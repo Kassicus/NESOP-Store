@@ -55,7 +55,7 @@ def delete_user(username):
 def get_items():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT item, description, price FROM items')
+    c.execute('SELECT item, description, price, image FROM items')
     items = c.fetchall()
     conn.close()
     return items
@@ -63,27 +63,35 @@ def get_items():
 def get_item(item_name):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT item, description, price FROM items WHERE item = ?', (item_name,))
+    c.execute('SELECT item, description, price, image FROM items WHERE item = ?', (item_name,))
     item = c.fetchone()
     conn.close()
     return item
 
-def add_item(item, description, price):
+def add_item(item, description, price, image=None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('INSERT INTO items (item, description, price) VALUES (?, ?, ?)', (item, description, price))
+    c.execute('INSERT INTO items (item, description, price, image) VALUES (?, ?, ?, ?)', (item, description, price, image))
     conn.commit()
     conn.close()
 
-def update_item(item, description=None, price=None):
+def update_item(item, description=None, price=None, image=None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    if description is not None and price is not None:
+    if description is not None and price is not None and image is not None:
+        c.execute('UPDATE items SET description = ?, price = ?, image = ? WHERE item = ?', (description, price, image, item))
+    elif description is not None and price is not None:
         c.execute('UPDATE items SET description = ?, price = ? WHERE item = ?', (description, price, item))
+    elif description is not None and image is not None:
+        c.execute('UPDATE items SET description = ?, image = ? WHERE item = ?', (description, image, item))
+    elif price is not None and image is not None:
+        c.execute('UPDATE items SET price = ?, image = ? WHERE item = ?', (price, image, item))
     elif description is not None:
         c.execute('UPDATE items SET description = ? WHERE item = ?', (description, item))
     elif price is not None:
         c.execute('UPDATE items SET price = ? WHERE item = ?', (price, item))
+    elif image is not None:
+        c.execute('UPDATE items SET image = ? WHERE item = ?', (image, item))
     conn.commit()
     conn.close()
 
