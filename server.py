@@ -3,13 +3,33 @@ import db_utils
 import logging
 from datetime import datetime
 import os
+from pathlib import Path
 
 app = Flask(__name__, static_folder='.')
-app.config['UPLOAD_FOLDER'] = 'assets/images'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
+# Get absolute path for upload folder
+UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'assets', 'images'))
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Log the upload folder path
+logging.info(f"Upload folder path: {UPLOAD_FOLDER}")
+
+# Check if directory exists and is writable
+if not os.path.exists(UPLOAD_FOLDER):
+    try:
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        logging.info(f"Created upload directory: {UPLOAD_FOLDER}")
+    except Exception as e:
+        logging.error(f"Failed to create upload directory: {str(e)}")
+        # Continue execution - the directory might already exist
+else:
+    logging.info(f"Upload directory exists: {UPLOAD_FOLDER}")
+    # Check if directory is writable
+    if not os.access(UPLOAD_FOLDER, os.W_OK):
+        logging.error(f"Upload directory is not writable: {UPLOAD_FOLDER}")
 
 @app.route('/api/update-balance', methods=['POST'])
 def update_balance():
@@ -128,7 +148,7 @@ def add_item():
     if image_file and image_file.filename:
         ext = os.path.splitext(image_file.filename)[1].lower()
         safe_name = f"{item.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+        image_path = os.path.join(UPLOAD_FOLDER, safe_name)
         image_file.save(image_path)
         image_filename = f"assets/images/{safe_name}"
     db_utils.add_item(item, description, float(price), image_filename)
@@ -156,7 +176,7 @@ def update_item():
     if image_file and image_file.filename:
         ext = os.path.splitext(image_file.filename)[1].lower()
         safe_name = f"{item.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+        image_path = os.path.join(UPLOAD_FOLDER, safe_name)
         image_file.save(image_path)
         image_filename = f"assets/images/{safe_name}"
     db_utils.update_item(item, description, float(price) if price is not None else None, image_filename)
@@ -184,7 +204,7 @@ def serve_static(path):
 # Serve images from assets/images
 @app.route('/assets/images/<path:filename>')
 def serve_image(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 if __name__ == '__main__':
     app.run(port=8000, debug=True) 
