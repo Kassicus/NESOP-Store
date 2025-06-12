@@ -5,15 +5,16 @@ DB_PATH = 'nesop_store.db'
 def get_user(username):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT username, password, balance FROM users WHERE username = ?', (username,))
+    c.execute('SELECT username, password, balance, is_admin FROM users WHERE username = ?', (username,))
     user = c.fetchone()
     conn.close()
     return user  # Returns tuple or None
 
-def add_user(username, password, balance):
+def add_user(username, password, balance, is_admin=0):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('INSERT INTO users (username, password, balance) VALUES (?, ?, ?)', (username, password, balance))
+    c.execute('INSERT INTO users (username, password, balance, is_admin) VALUES (?, ?, ?, ?)', 
+              (username, password, balance, is_admin))
     conn.commit()
     conn.close()
 
@@ -27,20 +28,29 @@ def update_balance(username, new_balance):
 def get_all_users():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT username, password, balance FROM users')
+    c.execute('SELECT username, password, balance, is_admin FROM users')
     users = c.fetchall()
     conn.close()
     return users
 
-def update_user(username, password=None, balance=None):
+def update_user(username, password=None, balance=None, is_admin=None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    if password is not None and balance is not None:
+    if password is not None and balance is not None and is_admin is not None:
+        c.execute('UPDATE users SET password = ?, balance = ?, is_admin = ? WHERE username = ?', 
+                  (password, balance, is_admin, username))
+    elif password is not None and balance is not None:
         c.execute('UPDATE users SET password = ?, balance = ? WHERE username = ?', (password, balance, username))
+    elif password is not None and is_admin is not None:
+        c.execute('UPDATE users SET password = ?, is_admin = ? WHERE username = ?', (password, is_admin, username))
+    elif balance is not None and is_admin is not None:
+        c.execute('UPDATE users SET balance = ?, is_admin = ? WHERE username = ?', (balance, is_admin, username))
     elif password is not None:
         c.execute('UPDATE users SET password = ? WHERE username = ?', (password, username))
     elif balance is not None:
         c.execute('UPDATE users SET balance = ? WHERE username = ?', (balance, username))
+    elif is_admin is not None:
+        c.execute('UPDATE users SET is_admin = ? WHERE username = ?', (is_admin, username))
     conn.commit()
     conn.close()
 
@@ -50,6 +60,14 @@ def delete_user(username):
     c.execute('DELETE FROM users WHERE username = ?', (username,))
     conn.commit()
     conn.close()
+
+def is_admin(username):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT is_admin FROM users WHERE username = ?', (username,))
+    result = c.fetchone()
+    conn.close()
+    return result[0] == 1 if result else False
 
 # --- Item CRUD ---
 def get_items():

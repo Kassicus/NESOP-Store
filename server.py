@@ -36,16 +36,25 @@ def register():
         return jsonify({'error': 'Username and password required.'}), 400
     if db_utils.get_user(username):
         return jsonify({'error': 'Username already exists.'}), 409
-    db_utils.add_user(username, password, 0)
+    db_utils.add_user(username, password, 0, 0)  # Default is_admin=0
     logging.info(f"New user registered: {username}")
     return jsonify({'success': True})
+
+@app.route('/api/check-admin', methods=['POST'])
+def check_admin():
+    data = request.get_json()
+    username = data.get('username')
+    if not username:
+        return jsonify({'error': 'Username required.'}), 400
+    is_admin = db_utils.is_admin(username)
+    return jsonify({'is_admin': is_admin})
 
 # --- User Management (Admin) ---
 @app.route('/api/users', methods=['GET'])
 def get_users():
     users = db_utils.get_all_users()
     return jsonify({'users': [
-        {'username': u[0], 'password': u[1], 'balance': u[2]} for u in users
+        {'username': u[0], 'password': u[1], 'balance': u[2], 'is_admin': u[3]} for u in users
     ]})
 
 @app.route('/api/users', methods=['POST'])
@@ -54,12 +63,13 @@ def add_user():
     username = data.get('username')
     password = data.get('password')
     balance = data.get('balance', 0)
+    is_admin = data.get('is_admin', 0)
     if not username or not password:
         return jsonify({'error': 'Username and password required.'}), 400
     if db_utils.get_user(username):
         return jsonify({'error': 'Username already exists.'}), 409
-    db_utils.add_user(username, password, balance)
-    logging.info(f"Admin added user: {username}")
+    db_utils.add_user(username, password, balance, is_admin)
+    logging.info(f"Admin added user: {username} (admin: {is_admin})")
     return jsonify({'success': True})
 
 @app.route('/api/users', methods=['PUT'])
@@ -68,12 +78,13 @@ def update_user():
     username = data.get('username')
     password = data.get('password')
     balance = data.get('balance')
+    is_admin = data.get('is_admin')
     if not username:
         return jsonify({'error': 'Username required.'}), 400
     if not db_utils.get_user(username):
         return jsonify({'error': 'User not found.'}), 404
-    db_utils.update_user(username, password, balance)
-    logging.info(f"Admin updated user: {username}")
+    db_utils.update_user(username, password, balance, is_admin)
+    logging.info(f"Admin updated user: {username} (admin: {is_admin})")
     return jsonify({'success': True})
 
 @app.route('/api/users', methods=['DELETE'])

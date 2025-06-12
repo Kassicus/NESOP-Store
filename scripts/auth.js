@@ -29,6 +29,7 @@ function showLoginForm() {
         const user = users.find(u => u.username === username && u.password === password);
         if (user) {
           localStorage.setItem('nesop_user', username);
+          localStorage.setItem('nesop_user_admin', user.is_admin ? 'true' : 'false');
           window.location.reload();
         } else {
           document.getElementById('login-error').textContent = 'Invalid username or password.';
@@ -48,6 +49,17 @@ function checkLogin() {
     // User is logged in, show store
     if (typeof showStore === 'function') {
       showStore(user);
+      
+      // Check if user is admin and show admin panel link if so
+      const isAdmin = localStorage.getItem('nesop_user_admin') === 'true';
+      const adminPanelLink = document.getElementById('admin-panel-link');
+      if (adminPanelLink) {
+        if (isAdmin) {
+          adminPanelLink.innerHTML = '<a href="admin.html" class="admin-link">Admin Panel</a>';
+        } else {
+          adminPanelLink.innerHTML = '';
+        }
+      }
     } else {
       document.getElementById('app').innerHTML = '<p>Welcome, ' + user + '!</p>';
     }
@@ -64,5 +76,6 @@ document.addEventListener('DOMContentLoaded', loadUsersAndStart);
 // Export a logout function for use in other scripts
 window.nesopLogout = function() {
   localStorage.removeItem('nesop_user');
+  localStorage.removeItem('nesop_user_admin');
   window.location.href = 'index.html';
 }; 

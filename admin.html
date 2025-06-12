@@ -76,6 +76,17 @@
       margin-bottom: 0.3rem;
       color: #1976d2;
     }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      cursor: pointer;
+    }
     .modal .action-btn {
       background: #1976d2;
       color: #fff;
@@ -128,14 +139,32 @@
   </div>
   <div id="modal-root" style="display:none;"></div>
   <script>
-    if (localStorage.getItem('nesop_user') !== 'admin') {
-      alert('Admin access only.');
+    // Check if user is admin
+    const currentUser = localStorage.getItem('nesop_user');
+    if (!currentUser) {
+      alert('Please log in first.');
       window.location.href = 'index.html';
+    } else {
+      fetch('/api/check-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.is_admin) {
+          alert('Admin access only.');
+          window.location.href = 'index.html';
+        }
+      });
     }
+    
     function logout() {
       localStorage.removeItem('nesop_user');
+      localStorage.removeItem('nesop_user_admin');
       window.location.href = 'index.html';
     }
+    
     // --- Users CRUD ---
     function fetchUsers() {
       fetch('/api/users').then(res => res.json()).then(data => {
@@ -143,12 +172,13 @@
       });
     }
     function renderUsersTable(users) {
-      let html = `<table class="admin-table"><thead><tr><th>Username</th><th>Password</th><th>Balance</th><th>Actions</th></tr></thead><tbody>`;
+      let html = `<table class="admin-table"><thead><tr><th>Username</th><th>Password</th><th>Balance</th><th>Admin</th><th>Actions</th></tr></thead><tbody>`;
       users.forEach(u => {
         html += `<tr id="user-row-${u.username}">
           <td>${u.username}</td>
           <td>••••••••</td>
           <td>${u.balance}</td>
+          <td>${u.is_admin ? 'Yes' : 'No'}</td>
           <td>
             <button class="action-btn edit" onclick="showEditUserForm('${u.username}')">Edit</button>
             <button class="action-btn delete" onclick="deleteUser('${u.username}')">Delete</button>
@@ -176,6 +206,12 @@
             <label for="edit-balance">Balance</label>
             <input id='edit-balance' type='number' value='${user.balance}' />
           </div>
+          <div class="form-group checkbox-group">
+            <label for="edit-admin">
+              <input id='edit-admin' type='checkbox' ${user.is_admin ? 'checked' : ''} />
+              Administrator
+            </label>
+          </div>
           <div class='modal-actions'>
             <button class='action-btn save' onclick='saveEditUser()'>Save</button>
             <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
@@ -187,7 +223,8 @@
       const username = document.getElementById('edit-username').value;
       const password = document.getElementById('edit-password').value;
       const balance = parseInt(document.getElementById('edit-balance').value);
-      const payload = { username, password, balance };
+      const is_admin = document.getElementById('edit-admin').checked ? 1 : 0;
+      const payload = { username, password, balance, is_admin };
       fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         .then(res => res.json()).then(data => {
           closeModal();
@@ -227,6 +264,12 @@
           <label for="add-balance">Balance</label>
           <input id='add-balance' type='number' value='0' />
         </div>
+        <div class="form-group checkbox-group">
+          <label for="add-admin">
+            <input id='add-admin' type='checkbox' />
+            Administrator
+          </label>
+        </div>
         <div class='modal-actions'>
           <button class='action-btn add' onclick='addUser()'>Add</button>
           <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
@@ -237,7 +280,8 @@
       const username = document.getElementById('add-username').value.trim();
       const password = document.getElementById('add-password').value;
       const balance = parseInt(document.getElementById('add-balance').value) || 0;
-      fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, balance }) })
+      const is_admin = document.getElementById('add-admin').checked ? 1 : 0;
+      fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, balance, is_admin }) })
         .then(res => res.json()).then(data => {
           closeModal();
           fetchUsers();
