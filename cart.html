@@ -63,7 +63,7 @@
               <div class="cart-item-info">
                 <div class="cart-item-title">${item.item}</div>
                 <div class="cart-item-desc">${item.description}</div>
-                <div class="cart-item-price">${item.price} ESOP Bucks</div>
+                <div class="cart-item-price">€ ${item.price}</div>
                 <button class="remove-cart-btn" onclick="removeFromCart(${idx})">Remove</button>
               </div>
             </div>
@@ -82,7 +82,7 @@
             <div class="cart-list">${itemsHtml}</div>
             <div class="cart-total-row">
               <span class="cart-total-label">Total:</span>
-              <span class="cart-total-value">${total} ESOP Bucks</span>
+              <span class="cart-total-value">€ ${total}</span>
             </div>
             <button class="checkout-btn" id="checkout-btn" ${cart.length === 0 ? 'disabled' : ''}>Proceed to Purchase</button>
             <div id="checkout-message" style="margin-top:1rem;"></div>
@@ -99,7 +99,7 @@
               const username = getCurrentUser();
               let balance = getUserBalance(users, username);
               if (balance < total) {
-                document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Insufficient ESOP Bucks for this purchase.</span>';
+                document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Insufficient € for this purchase.</span>';
                 return;
               }
               // Deduct balance
@@ -107,7 +107,7 @@
               setUserBalance(users, username, balance);
               // Generate order text
               const now = new Date();
-              const orderText = `Order for: ${username}\nDate: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n${cart.map(i => `- ${i.item} (${i.price} ESOP Bucks)`).join('\n')}\n\nTotal: ${total} ESOP Bucks\n`;
+              const orderText = `Order for: ${username}\nDate: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n${cart.map(i => `- ${i.item} (€ ${i.price})`).join('\n')}\n\nTotal: € ${total}\n`;
               // Download order file
               downloadOrderFile(orderText, username);
               // Persist balance to backend
