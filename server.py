@@ -119,7 +119,14 @@ def delete_user():
 def get_items():
     items = db_utils.get_items()
     return jsonify({'items': [
-        {'item': i[0], 'description': i[1], 'price': i[2], 'image': i[3]} for i in items
+        {
+            'item': i[0],
+            'description': i[1],
+            'price': i[2],
+            'image': i[3],
+            'sold_out': bool(i[4]) if len(i) > 4 else False,
+            'unlisted': bool(i[5]) if len(i) > 5 else False
+        } for i in items
     ]})
 
 @app.route('/api/items', methods=['POST'])
@@ -129,12 +136,16 @@ def add_item():
         description = request.form.get('description')
         price = request.form.get('price')
         image_file = request.files.get('image')
+        sold_out = int(request.form.get('sold_out', 0))
+        unlisted = int(request.form.get('unlisted', 0))
     else:
         data = request.get_json()
         item = data.get('item')
         description = data.get('description')
         price = data.get('price')
         image_file = None
+        sold_out = int(data.get('sold_out', 0))
+        unlisted = int(data.get('unlisted', 0))
     if not item or description is None or price is None:
         return jsonify({'error': 'Item, description, and price required.'}), 400
     if db_utils.get_item(item):
@@ -146,8 +157,8 @@ def add_item():
         image_path = os.path.join(UPLOAD_FOLDER, safe_name)
         image_file.save(image_path)
         image_filename = f"assets/images/{safe_name}"
-    db_utils.add_item(item, description, float(price), image_filename)
-    logging.info(f"Admin added item: {item} (image: {image_filename})")
+    db_utils.add_item(item, description, float(price), image_filename, sold_out, unlisted)
+    logging.info(f"Admin added item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted})")
     return jsonify({'success': True})
 
 @app.route('/api/items', methods=['PUT'])
@@ -157,12 +168,16 @@ def update_item():
         description = request.form.get('description')
         price = request.form.get('price')
         image_file = request.files.get('image')
+        sold_out = request.form.get('sold_out')
+        unlisted = request.form.get('unlisted')
     else:
         data = request.get_json()
         item = data.get('item')
         description = data.get('description')
         price = data.get('price')
         image_file = None
+        sold_out = data.get('sold_out')
+        unlisted = data.get('unlisted')
     if not item:
         return jsonify({'error': 'Item required.'}), 400
     if not db_utils.get_item(item):
@@ -174,8 +189,15 @@ def update_item():
         image_path = os.path.join(UPLOAD_FOLDER, safe_name)
         image_file.save(image_path)
         image_filename = f"assets/images/{safe_name}"
-    db_utils.update_item(item, description, float(price) if price is not None else None, image_filename)
-    logging.info(f"Admin updated item: {item} (image: {image_filename})")
+    db_utils.update_item(
+        item,
+        description,
+        float(price) if price is not None else None,
+        image_filename,
+        int(sold_out) if sold_out is not None else None,
+        int(unlisted) if unlisted is not None else None
+    )
+    logging.info(f"Admin updated item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted})")
     return jsonify({'success': True})
 
 @app.route('/api/items', methods=['DELETE'])

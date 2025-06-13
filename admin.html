@@ -335,6 +335,18 @@
             <label for="edit-image">New Image (Optional)</label>
             <input id='edit-image' type='file' accept='image/*' />
           </div>
+          <div class="form-group checkbox-group">
+            <label for="edit-sold-out">
+              <input id='edit-sold-out' type='checkbox' ${item.sold_out ? 'checked' : ''} />
+              Sold Out
+            </label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label for="edit-unlisted">
+              <input id='edit-unlisted' type='checkbox' ${item.unlisted ? 'checked' : ''} />
+              Unlisted
+            </label>
+          </div>
           <div class='modal-actions'>
             <button class='action-btn save' onclick='saveEditItem()'>Save</button>
             <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
@@ -348,10 +360,14 @@
       const price = parseFloat(document.getElementById('edit-price').value) || 0;
       const imageInput = document.getElementById('edit-image');
       const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const soldOut = document.getElementById('edit-sold-out').checked ? 1 : 0;
+      const unlisted = document.getElementById('edit-unlisted').checked ? 1 : 0;
       const formData = new FormData();
       formData.append('item', item);
       formData.append('description', description);
       formData.append('price', price);
+      formData.append('sold_out', soldOut);
+      formData.append('unlisted', unlisted);
       if (imageFile) formData.append('image', imageFile);
       fetch('/api/items', { method: 'PUT', body: formData })
         .then(res => res.json()).then(data => {
@@ -385,6 +401,18 @@
           <label for="add-image">Image (Optional)</label>
           <input id='add-image' type='file' accept='image/*' />
         </div>
+        <div class="form-group checkbox-group">
+          <label for="add-sold-out">
+            <input id='add-sold-out' type='checkbox' />
+            Sold Out
+          </label>
+        </div>
+        <div class="form-group checkbox-group">
+          <label for="add-unlisted">
+            <input id='add-unlisted' type='checkbox' />
+            Unlisted
+          </label>
+        </div>
         <div class='modal-actions'>
           <button class='action-btn add' onclick='addItem()'>Add</button>
           <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
@@ -397,10 +425,14 @@
       const price = parseFloat(document.getElementById('add-price').value) || 0;
       const imageInput = document.getElementById('add-image');
       const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const soldOut = document.getElementById('add-sold-out').checked ? 1 : 0;
+      const unlisted = document.getElementById('add-unlisted').checked ? 1 : 0;
       const formData = new FormData();
       formData.append('item', item);
       formData.append('description', description);
       formData.append('price', price);
+      formData.append('sold_out', soldOut);
+      formData.append('unlisted', unlisted);
       if (imageFile) formData.append('image', imageFile);
       fetch('/api/items', { method: 'POST', body: formData })
         .then(res => res.json()).then(data => {

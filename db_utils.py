@@ -90,7 +90,7 @@ def is_admin(username):
 def get_items():
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('SELECT item, description, price, image FROM items')
+    c.execute('SELECT item, description, price, image, sold_out, unlisted FROM items')
     items = c.fetchall()
     conn.close()
     return items
@@ -98,35 +98,41 @@ def get_items():
 def get_item(item_name):
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('SELECT item, description, price, image FROM items WHERE item = ?', (item_name,))
+    c.execute('SELECT item, description, price, image, sold_out, unlisted FROM items WHERE item = ?', (item_name,))
     item = c.fetchone()
     conn.close()
     return item
 
-def add_item(item, description, price, image=None):
+def add_item(item, description, price, image=None, sold_out=0, unlisted=0):
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('INSERT INTO items (item, description, price, image) VALUES (?, ?, ?, ?)', (item, description, price, image))
+    c.execute('INSERT INTO items (item, description, price, image, sold_out, unlisted) VALUES (?, ?, ?, ?, ?, ?)', (item, description, price, image, sold_out, unlisted))
     conn.commit()
     conn.close()
 
-def update_item(item, description=None, price=None, image=None):
+def update_item(item, description=None, price=None, image=None, sold_out=None, unlisted=None):
     conn = get_db_connection()
     c = conn.cursor()
-    if description is not None and price is not None and image is not None:
-        c.execute('UPDATE items SET description = ?, price = ?, image = ? WHERE item = ?', (description, price, image, item))
-    elif description is not None and price is not None:
-        c.execute('UPDATE items SET description = ?, price = ? WHERE item = ?', (description, price, item))
-    elif description is not None and image is not None:
-        c.execute('UPDATE items SET description = ?, image = ? WHERE item = ?', (description, image, item))
-    elif price is not None and image is not None:
-        c.execute('UPDATE items SET price = ?, image = ? WHERE item = ?', (price, image, item))
-    elif description is not None:
-        c.execute('UPDATE items SET description = ? WHERE item = ?', (description, item))
-    elif price is not None:
-        c.execute('UPDATE items SET price = ? WHERE item = ?', (price, item))
-    elif image is not None:
-        c.execute('UPDATE items SET image = ? WHERE item = ?', (image, item))
+    fields = []
+    values = []
+    if description is not None:
+        fields.append('description = ?')
+        values.append(description)
+    if price is not None:
+        fields.append('price = ?')
+        values.append(price)
+    if image is not None:
+        fields.append('image = ?')
+        values.append(image)
+    if sold_out is not None:
+        fields.append('sold_out = ?')
+        values.append(sold_out)
+    if unlisted is not None:
+        fields.append('unlisted = ?')
+        values.append(unlisted)
+    if fields:
+        values.append(item)
+        c.execute(f'UPDATE items SET {", ".join(fields)} WHERE item = ?', values)
     conn.commit()
     conn.close()
 

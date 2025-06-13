@@ -35,6 +35,26 @@ except sqlite3.OperationalError as e:
     else:
         raise
 
+# Add sold_out column if it doesn't exist
+try:
+    c.execute('ALTER TABLE items ADD COLUMN sold_out INTEGER DEFAULT 0')
+    print("Added 'sold_out' column to items table.")
+except sqlite3.OperationalError as e:
+    if 'duplicate column name' in str(e):
+        print("'sold_out' column already exists.")
+    else:
+        raise
+
+# Add unlisted column if it doesn't exist
+try:
+    c.execute('ALTER TABLE items ADD COLUMN unlisted INTEGER DEFAULT 0')
+    print("Added 'unlisted' column to items table.")
+except sqlite3.OperationalError as e:
+    if 'duplicate column name' in str(e):
+        print("'unlisted' column already exists.")
+    else:
+        raise
+
 conn.commit()
 conn.close()
 print("Items table created and populated (if CSV was present).")

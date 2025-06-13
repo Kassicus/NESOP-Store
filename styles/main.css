@@ -43,7 +43,7 @@ body {
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 0.4rem 1rem;
+  padding: 0.6rem 1.25rem;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.2s;
@@ -334,7 +334,7 @@ body {
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 0.4rem 1rem;
+  padding: 0.6rem 1.25rem;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.2s;
