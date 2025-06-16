@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 import os
 from pathlib import Path
+from PIL import Image
+import io
 
 app = Flask(__name__, static_folder='.')
 
@@ -153,10 +155,28 @@ def add_item():
     image_filename = None
     if image_file and image_file.filename:
         ext = os.path.splitext(image_file.filename)[1].lower()
+        if ext != '.png':
+            return jsonify({'error': 'Only .png images are allowed.'}), 400
         safe_name = f"{item.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
         image_path = os.path.join(UPLOAD_FOLDER, safe_name)
-        image_file.save(image_path)
-        image_filename = f"assets/images/{safe_name}"
+        try:
+            img = Image.open(image_file.stream)
+            # Preserve ICC profile and gamma if present
+            icc_profile = img.info.get('icc_profile')
+            gamma = img.info.get('gamma')
+            # Only convert if not already RGBA or RGB
+            if img.mode not in ('RGBA', 'RGB'):
+                img = img.convert('RGBA')
+            save_kwargs = {'optimize': True}
+            if icc_profile:
+                save_kwargs['icc_profile'] = icc_profile
+            if gamma:
+                save_kwargs['gamma'] = gamma
+            img.save(image_path, format='PNG', **save_kwargs)
+            image_filename = f"assets/images/{safe_name}"
+        except Exception as e:
+            logging.error(f"Error processing image: {e}")
+            return jsonify({'error': 'Failed to process image.'}), 500
     db_utils.add_item(item, description, float(price), image_filename, sold_out, unlisted)
     logging.info(f"Admin added item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted})")
     return jsonify({'success': True})
@@ -185,10 +205,28 @@ def update_item():
     image_filename = None
     if image_file and image_file.filename:
         ext = os.path.splitext(image_file.filename)[1].lower()
+        if ext != '.png':
+            return jsonify({'error': 'Only .png images are allowed.'}), 400
         safe_name = f"{item.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
         image_path = os.path.join(UPLOAD_FOLDER, safe_name)
-        image_file.save(image_path)
-        image_filename = f"assets/images/{safe_name}"
+        try:
+            img = Image.open(image_file.stream)
+            # Preserve ICC profile and gamma if present
+            icc_profile = img.info.get('icc_profile')
+            gamma = img.info.get('gamma')
+            # Only convert if not already RGBA or RGB
+            if img.mode not in ('RGBA', 'RGB'):
+                img = img.convert('RGBA')
+            save_kwargs = {'optimize': True}
+            if icc_profile:
+                save_kwargs['icc_profile'] = icc_profile
+            if gamma:
+                save_kwargs['gamma'] = gamma
+            img.save(image_path, format='PNG', **save_kwargs)
+            image_filename = f"assets/images/{safe_name}"
+        except Exception as e:
+            logging.error(f"Error processing image: {e}")
+            return jsonify({'error': 'Failed to process image.'}), 500
     db_utils.update_item(
         item,
         description,
