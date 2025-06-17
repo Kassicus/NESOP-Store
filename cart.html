@@ -70,22 +70,54 @@
       let itemsHtml = '';
       if (cart.length === 0) {
         itemsHtml = '<p>Your cart is empty.</p>';
+        renderCartHtml(itemsHtml, total, cart.length);
       } else {
-        itemsHtml = cart.map((item, idx) => {
-          total += parseFloat(item.price);
-          return `
-            <div class="cart-item">
-              <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="cart-item-img" />
-              <div class="cart-item-info">
-                <div class="cart-item-title">${item.item}</div>
-                <div class="cart-item-desc">${item.description}</div>
-                <div class="cart-item-price">€ ${item.price}</div>
-                <button class="remove-cart-btn" onclick="removeFromCart(${idx})">Remove</button>
-              </div>
-            </div>
-          `;
-        }).join('');
+        // Fetch latest items from API to get up-to-date image paths
+        fetch('/api/items')
+          .then(res => res.json())
+          .then(data => {
+            const items = data.items || [];
+            itemsHtml = cart.map((cartItem, idx) => {
+              // Find the latest item info by name
+              const latest = items.find(i => i.item === cartItem.item);
+              const imageSrc = latest && latest.image ? latest.image : (cartItem.image || 'assets/images/placeholder.png');
+              total += parseFloat(cartItem.price);
+              return `
+                <div class="cart-item">
+                  <img src="${imageSrc}" alt="${cartItem.item}" class="cart-item-img" />
+                  <div class="cart-item-info">
+                    <div class="cart-item-title">${cartItem.item}</div>
+                    <div class="cart-item-desc">${cartItem.description}</div>
+                    <div class="cart-item-price">€ ${cartItem.price}</div>
+                    <button class="remove-cart-btn" onclick="removeFromCart(${idx})">Remove</button>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            renderCartHtml(itemsHtml, total, cart.length);
+          })
+          .catch(() => {
+            // fallback: render with possibly stale images
+            itemsHtml = cart.map((item, idx) => {
+              total += parseFloat(item.price);
+              return `
+                <div class="cart-item">
+                  <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="cart-item-img" />
+                  <div class="cart-item-info">
+                    <div class="cart-item-title">${item.item}</div>
+                    <div class="cart-item-desc">${item.description}</div>
+                    <div class="cart-item-price">€ ${item.price}</div>
+                    <button class="remove-cart-btn" onclick="removeFromCart(${idx})">Remove</button>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            renderCartHtml(itemsHtml, total, cart.length);
+          });
       }
+    }
+    // Helper to render cart HTML and set up checkout button
+    function renderCartHtml(itemsHtml, total, cartLength) {
       document.getElementById('cart-app').innerHTML = `
         <main>
           <div class="container">
@@ -94,12 +126,12 @@
               <span class="cart-total-label">Total:</span>
               <span class="cart-total-value">€ ${total}</span>
             </div>
-            <button class="checkout-btn" id="checkout-btn" ${cart.length === 0 ? 'disabled' : ''}>Proceed to Purchase</button>
+            <button class="checkout-btn" id="checkout-btn" ${cartLength === 0 ? 'disabled' : ''}>Proceed to Purchase</button>
             <div id="checkout-message" style="margin-top:1rem;"></div>
           </div>
         </main>
       `;
-      if (cart.length > 0) {
+      if (cartLength > 0) {
         document.getElementById('checkout-btn').onclick = function() {
           // Fetch users from API, update balance, and generate order file
           fetch('/api/users')
@@ -117,7 +149,7 @@
               setUserBalance(users, username, balance);
               // Generate order text
               const now = new Date();
-              const orderText = `Order for: ${username}\nDate: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n${cart.map(i => `- ${i.item} (€ ${i.price})`).join('\n')}\n\nTotal: € ${total}\n`;
+              const orderText = `Order for: ${username}\nDate: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n${getCart().map(i => `- ${i.item} (€ ${i.price})`).join('\n')}\n\nTotal: € ${total}\n`;
               // Download order file
               downloadOrderFile(orderText, username);
               // Persist balance to backend

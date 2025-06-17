@@ -349,4 +349,15 @@ body {
   word-break: break-word;
   white-space: pre-line;
   overflow-wrap: break-word;
+}
+
+/* Larger product images for store page only */
+#store-items .product-img {
+  width: 170px;
+  height: 170px;
+  margin-bottom: 0.7rem;
+}
+#store-items .product-info {
+  min-height: 120px; /* ensure info fits below larger image */
+  padding-top: 0.2rem;
 } 
