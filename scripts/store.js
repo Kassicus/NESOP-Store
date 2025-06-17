@@ -25,6 +25,18 @@ function capitalizeFirstLetter(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Utility to format a timestamp as MST
+function formatMST(dateString) {
+  // Parse as UTC, then convert to MST (UTC-7, no DST)
+  const date = new Date(dateString + 'Z'); // ensure UTC
+  // Get UTC time, then subtract 7 hours for MST
+  const mst = new Date(date.getTime() - 7 * 60 * 60 * 1000);
+  // Format as e.g. 'Apr 27, 2024, 3:45 PM MST'
+  return mst.toLocaleString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+  }) + ' MST';
+}
+
 function showStore(username) {
   // Fetch both items and user balance from API
   Promise.all([
@@ -87,32 +99,27 @@ function createProductModal() {
   if (productModal) return productModal;
   productModal = document.createElement('div');
   productModal.id = 'product-modal';
+  productModal.className = 'modal-overlay';
   productModal.style.display = 'none';
   productModal.innerHTML = `
-    <div class="modal-backdrop"></div>
-    <div class="modal-content">
+    <div class="modal">
       <button class="modal-close" id="modal-close-btn">&times;</button>
       <div id="modal-product-content"></div>
     </div>
   `;
   document.body.appendChild(productModal);
-  // Close modal on backdrop or close button
-  productModal.querySelector('.modal-backdrop').onclick = closeProductModal;
   productModal.querySelector('#modal-close-btn').onclick = closeProductModal;
-  // Close on Escape
   document.addEventListener('keydown', function(e) {
-    if (productModal.style.display === 'block' && e.key === 'Escape') closeProductModal();
+    if (productModal.style.display === 'flex' && e.key === 'Escape') closeProductModal();
   });
   return productModal;
 }
 
 function openProductModal(itemName) {
   const modal = createProductModal();
-  modal.style.display = 'block';
+  modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  // Loading state
   document.getElementById('modal-product-content').innerHTML = '<div class="modal-loading">Loading...</div>';
-  // Fetch product details and reviews
   Promise.all([
     fetch(`/api/product/${encodeURIComponent(itemName)}`).then(r => r.json()),
     fetch(`/api/product/${encodeURIComponent(itemName)}/reviews`).then(r => r.json())
@@ -122,44 +129,36 @@ function openProductModal(itemName) {
       return;
     }
     const reviews = reviewsData.reviews || [];
-    // Modal header styled like store-header
-    modal.querySelector('.modal-content').innerHTML = `
-      <div class="modal-header">
-        <span class="modal-title">${product.item}</span>
-        <button class="modal-close" id="modal-close-btn">&times;</button>
-      </div>
-      <div id="modal-product-content" class="container"></div>
-    `;
-    modal.querySelector('#modal-close-btn').onclick = closeProductModal;
-    // Modal content
     document.getElementById('modal-product-content').innerHTML = `
+      <div class="modal-title">${product.item}</div>
       <div class="modal-product-main">
         <img src="${product.image || 'assets/images/placeholder.png'}" alt="${product.item}" class="modal-product-img" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
         <div class="modal-product-info">
           <h2 class="product-name" style="margin-top:0;">${product.item}</h2>
           <p class="product-desc">${product.description}</p>
           <div class="modal-product-price">€ ${product.price}</div>
-          <button id="modal-add-cart-btn" class="add-cart-btn${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''} style="margin-top:1em;">${product.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
+          <button id="modal-add-cart-btn" class="action-btn add${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''} style="margin-top:1em;">${product.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
         </div>
       </div>
       <div class="modal-reviews-section">
         <h3 style="color:#1976d2;">Reviews</h3>
         <div id="modal-reviews-list">
           ${reviews.length === 0 ? '<p style="color:#888;">No reviews yet.</p>' : reviews.map(r => `
-            <div class="review">
+            <div class="review" data-review-id="${r.review_id}">
               <div class="review-header">
                 <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
                 <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
-                <span class="review-date">${new Date(r.timestamp).toLocaleString()}</span>
+                <span class="review-date">${formatMST(r.timestamp)}</span>
+                ${isAdminUser() ? `<button class="review-delete-btn action-btn cancel" title="Delete Review" style="margin-left:0.5em;padding:0.2em 0.6em;font-size:1em;">🗑️</button>` : ''}
               </div>
               <div class="review-text">${r.review_text}</div>
             </div>
           `).join('')}
         </div>
         <form id="modal-review-form">
-          <h4 style="color:#1976d2;">Leave a Review</h4>
-          <label>Rating:
-            <select name="rating" required>
+          <div class="form-group">
+            <label for="modal-review-rating">Rating:</label>
+            <select id="modal-review-rating" name="rating" required>
               <option value="">Select</option>
               <option value="5">5 - Excellent</option>
               <option value="4">4 - Good</option>
@@ -167,12 +166,19 @@ function openProductModal(itemName) {
               <option value="2">2 - Poor</option>
               <option value="1">1 - Terrible</option>
             </select>
-          </label>
-          <label>Review:<br>
-            <textarea name="review_text" rows="3" required></textarea>
-          </label>
-          <input type="text" name="username" placeholder="Your name (optional)" />
-          <button type="submit">Submit Review</button>
+          </div>
+          <div class="form-group">
+            <label for="modal-review-text">Review:</label>
+            <textarea id="modal-review-text" name="review_text" rows="3" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="modal-review-username">Your name (optional):</label>
+            <input id="modal-review-username" type="text" name="username" />
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="action-btn add">Submit Review</button>
+            <button type="button" class="action-btn cancel" id="modal-review-cancel">Cancel</button>
+          </div>
           <div id="modal-review-error" style="color:#e57373;margin-top:0.5em;"></div>
         </form>
       </div>
@@ -182,7 +188,6 @@ function openProductModal(itemName) {
     if (addCartBtn && !product.sold_out) {
       addCartBtn.onclick = function() {
         const cart = getCart();
-        // Prevent duplicates (optional: allow multiple quantities if desired)
         if (!cart.find(i => i.item === product.item)) {
           cart.push(product);
           setCart(cart);
@@ -215,15 +220,15 @@ function openProductModal(itemName) {
         if (!resp.success) {
           document.getElementById('modal-review-error').textContent = resp.error || 'Failed to submit review.';
         } else {
-          // Reload reviews
           fetch(`/api/product/${encodeURIComponent(itemName)}/reviews`).then(r => r.json()).then(reviewsData2 => {
             const reviews2 = reviewsData2.reviews || [];
             document.getElementById('modal-reviews-list').innerHTML = reviews2.length === 0 ? '<p style="color:#888;">No reviews yet.</p>' : reviews2.map(r => `
-              <div class="review">
+              <div class="review" data-review-id="${r.review_id}">
                 <div class="review-header">
                   <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
                   <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
-                  <span class="review-date">${new Date(r.timestamp).toLocaleString()}</span>
+                  <span class="review-date">${formatMST(r.timestamp)}</span>
+                  ${isAdminUser() ? `<button class="review-delete-btn action-btn cancel" title="Delete Review" style="margin-left:0.5em;padding:0.2em 0.6em;font-size:1em;">🗑️</button>` : ''}
                 </div>
                 <div class="review-text">${r.review_text}</div>
               </div>
@@ -236,6 +241,33 @@ function openProductModal(itemName) {
         document.getElementById('modal-review-error').textContent = 'Failed to submit review.';
       });
     };
+    // Cancel button closes modal
+    document.getElementById('modal-review-cancel').onclick = closeProductModal;
+    // Admin review delete logic
+    if (isAdminUser()) {
+      document.querySelectorAll('.review-delete-btn').forEach(btn => {
+        btn.onclick = function(e) {
+          e.preventDefault();
+          const reviewDiv = this.closest('.review');
+          const reviewId = reviewDiv.getAttribute('data-review-id');
+          if (!confirm('Are you sure you want to delete this review?')) return;
+          const username = localStorage.getItem('nesop_user');
+          fetch(`/api/product/${encodeURIComponent(itemName)}/reviews/${reviewId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+          }).then(r => r.json()).then(resp => {
+            if (!resp.success) {
+              alert(resp.error || 'Failed to delete review.');
+            } else {
+              reviewDiv.remove();
+            }
+          }).catch(() => {
+            alert('Failed to delete review.');
+          });
+        };
+      });
+    }
   }).catch(err => {
     document.getElementById('modal-product-content').innerHTML = `<div class="modal-error">Failed to load product info.</div>`;
     console.error('Error loading product modal:', err);
@@ -323,26 +355,70 @@ function renderItems(items) {
 (function() {
   const style = document.createElement('style');
   style.innerHTML = `
-    #product-modal { position: fixed; z-index: 10000; top: 0; left: 0; width: 100vw; height: 100vh; display: none; }
-    #product-modal .modal-backdrop { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.65); }
-    #product-modal .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; border-radius: 16px; max-width: 700px; width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 2rem 1.5rem 1.5rem 1.5rem; }
-    #product-modal .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; color: #333; cursor: pointer; }
-    #modal-product-content .modal-product-main { display: flex; gap: 2rem; align-items: flex-start; }
-    #modal-product-content .modal-product-img { width: 180px; height: 180px; object-fit: contain; border-radius: 12px; background: #f5f5f5; }
-    #modal-product-content .modal-product-info { flex: 1; }
-    #modal-product-content .modal-product-price { font-size: 1.3em; font-weight: bold; margin-top: 0.5em; }
-    #modal-product-content .modal-reviews-section { margin-top: 2em; }
-    #modal-product-content .review { border-bottom: 1px solid #eee; padding: 0.5em 0; }
-    #modal-product-content .review-header { display: flex; gap: 1em; font-size: 0.95em; color: #555; align-items: center; }
-    #modal-product-content .review-rating { color: #fbc02d; font-size: 1.1em; }
-    #modal-product-content .review-user { font-weight: bold; }
-    #modal-product-content .review-date { font-size: 0.9em; color: #888; }
-    #modal-product-content .review-text { margin-top: 0.2em; }
-    #modal-product-content .modal-loading, #modal-product-content .modal-error { text-align: center; margin: 2em 0; color: #888; }
-    #modal-product-content #modal-review-form { margin-top: 1.5em; display: flex; flex-direction: column; gap: 0.7em; }
-    #modal-product-content #modal-review-form textarea { width: 100%; resize: vertical; }
-    #modal-product-content #modal-review-form button { align-self: flex-start; background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.5em 1.2em; font-size: 1em; cursor: pointer; margin-top: 0.5em; }
-    #modal-product-content #modal-review-form button:hover { background: #1565c0; }
+    #product-modal.modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.35); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.2s;
+    }
+    #product-modal .modal {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 4px 24px rgba(25, 118, 210, 0.18);
+      padding: 2rem 2.5rem; min-width: 320px; max-width: 95vw;
+      z-index: 1001; position: relative; animation: modalIn 0.2s;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    #product-modal .modal-title {
+      font-size: 1.35rem; font-weight: 600; letter-spacing: 0.5px;
+      color: #1976d2; margin-bottom: 1.2rem;
+    }
+    #product-modal .modal-close {
+      position: absolute; top: 1.2rem; right: 1.2rem;
+      background: none; border: none; font-size: 2rem; color: #1976d2;
+      cursor: pointer; transition: color 0.2s;
+    }
+    #product-modal .modal-close:hover { color: #f27a12; }
+    #product-modal .modal-product-main { display: flex; gap: 2rem; align-items: flex-start; }
+    #product-modal .modal-product-img { width: 140px; height: 140px; object-fit: contain; border-radius: 8px; background: #e3f2fd; box-shadow: 0 1px 4px rgba(25,118,210,0.07); }
+    #product-modal .modal-product-info { flex: 1; }
+    #product-modal .modal-product-price { font-size: 1.2em; font-weight: bold; margin-top: 0.5em; color: #1976d2; }
+    #product-modal .modal-reviews-section { margin-top: 2em; }
+    #product-modal .review { border-bottom: 1px solid #e3f2fd; padding: 0.5em 0; }
+    #product-modal .review-header { display: flex; gap: 1em; font-size: 0.95em; color: #555; align-items: center; }
+    #product-modal .review-rating { color: #fbc02d; font-size: 1.1em; }
+    #product-modal .review-user { font-weight: bold; color: #1976d2; }
+    #product-modal .review-date { font-size: 0.9em; color: #888; }
+    #product-modal .review-text { margin-top: 0.2em; }
+    #product-modal .modal-loading, #product-modal .modal-error { text-align: center; margin: 2em 0; color: #888; }
+    #product-modal #modal-review-form { margin-top: 1.5em; }
+    #product-modal .form-group { margin-bottom: 1rem; }
+    #product-modal .form-group label { display: block; font-weight: bold; margin-bottom: 0.3rem; color: #1976d2; }
+    #product-modal .form-group input, #product-modal .form-group textarea, #product-modal .form-group select {
+      display: block; width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #b3c6e0; font-size: 1rem;
+      margin-bottom: 0.2rem;
+    }
+    #product-modal .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
+    #product-modal .action-btn {
+      background: #1976d2; color: #fff; border: none; border-radius: 4px;
+      padding: 0.4rem 0.8rem; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: background 0.2s;
+    }
+    #product-modal .action-btn.cancel { background: #9e9e9e; }
+    #product-modal .action-btn.save, #product-modal .action-btn.add { background: #1976d2; }
+    #product-modal .action-btn.cancel:hover { background: #757575; }
+    #product-modal .action-btn.save:hover, #product-modal .action-btn.add:hover { background: #125ea7; }
+    @media (max-width: 700px) {
+      #product-modal .modal { padding: 1rem 0.5rem; }
+      #product-modal .modal-product-main { flex-direction: column; gap: 1rem; align-items: stretch; }
+      #product-modal .modal-product-img { width: 100%; height: 120px; }
+    }
   `;
   document.head.appendChild(style);
-})(); 
+})();
+
+// Helper to check if user is admin
+function isAdminUser() {
+  return localStorage.getItem('nesop_user_admin') === 'true';
+} 

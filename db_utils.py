@@ -169,3 +169,17 @@ def add_review(item, username, rating, review_text):
         return False
     finally:
         conn.close()
+
+def delete_review(review_id):
+    conn = get_db_connection()
+    try:
+        c = conn.cursor()
+        c.execute('DELETE FROM reviews WHERE review_id = ?', (review_id,))
+        conn.commit()
+        logger.info(f"Review {review_id} deleted.")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete review {review_id}: {str(e)}")
+        return False
+    finally:
+        conn.close()

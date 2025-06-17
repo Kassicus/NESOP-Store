@@ -261,6 +261,19 @@ def add_product_review(item):
     logging.info(f"Review submitted for {item} by {username or 'anonymous'}.")
     return jsonify({'success': True})
 
+@app.route('/api/product/<item>/reviews/<int:review_id>', methods=['DELETE'])
+def delete_product_review(item, review_id):
+    data = request.get_json() or {}
+    username = data.get('username')
+    if not username or not db_utils.is_admin(username):
+        logging.warning(f"Unauthorized review delete attempt by {username} for review {review_id}.")
+        return jsonify({'error': 'Admin privileges required.'}), 403
+    success = db_utils.delete_review(review_id)
+    if not success:
+        return jsonify({'error': 'Failed to delete review.'}), 500
+    logging.info(f"Admin {username} deleted review {review_id} for item {item}.")
+    return jsonify({'success': True})
+
 # Serve static files (HTML, JS, CSS, etc.)
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')
