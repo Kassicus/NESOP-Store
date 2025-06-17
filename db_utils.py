@@ -142,3 +142,30 @@ def delete_item(item):
     c.execute('DELETE FROM items WHERE item = ?', (item,))
     conn.commit()
     conn.close()
+
+def get_reviews_for_item(item):
+    conn = get_db_connection()
+    try:
+        c = conn.cursor()
+        c.execute('SELECT review_id, item, username, rating, review_text, timestamp FROM reviews WHERE item = ? ORDER BY timestamp DESC', (item,))
+        reviews = c.fetchall()
+        return reviews
+    except Exception as e:
+        logger.error(f"Failed to fetch reviews for item {item}: {str(e)}")
+        return []
+    finally:
+        conn.close()
+
+def add_review(item, username, rating, review_text):
+    conn = get_db_connection()
+    try:
+        c = conn.cursor()
+        c.execute('INSERT INTO reviews (item, username, rating, review_text) VALUES (?, ?, ?, ?)', (item, username, rating, review_text))
+        conn.commit()
+        logger.info(f"Review added for item {item} by {username or 'anonymous'}.")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to add review for item {item}: {str(e)}")
+        return False
+    finally:
+        conn.close()

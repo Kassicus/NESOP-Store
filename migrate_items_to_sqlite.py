@@ -55,6 +55,23 @@ except sqlite3.OperationalError as e:
     else:
         raise
 
+# --- Add reviews table for product reviews ---
+try:
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS reviews (
+            review_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item TEXT NOT NULL,
+            username TEXT,
+            rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+            review_text TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (item) REFERENCES items(item)
+        )
+    ''')
+    print("'reviews' table created or already exists.")
+except sqlite3.OperationalError as e:
+    print(f"Error creating 'reviews' table: {e}")
+
 conn.commit()
 conn.close()
 print("Items table created and populated (if CSV was present).")

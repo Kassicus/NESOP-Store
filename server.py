@@ -212,6 +212,55 @@ def delete_item():
     logging.info(f"Admin deleted item: {item}")
     return jsonify({'success': True})
 
+@app.route('/api/product/<item>', methods=['GET'])
+def get_product(item):
+    product = db_utils.get_item(item)
+    if not product:
+        logging.warning(f"Product not found: {item}")
+        return jsonify({'error': 'Product not found'}), 404
+    return jsonify({
+        'item': product[0],
+        'description': product[1],
+        'price': product[2],
+        'image': product[3],
+        'sold_out': bool(product[4]) if len(product) > 4 else False,
+        'unlisted': bool(product[5]) if len(product) > 5 else False
+    })
+
+@app.route('/api/product/<item>/reviews', methods=['GET'])
+def get_product_reviews(item):
+    reviews = db_utils.get_reviews_for_item(item)
+    return jsonify({'reviews': [
+        {
+            'review_id': r[0],
+            'item': r[1],
+            'username': r[2],
+            'rating': r[3],
+            'review_text': r[4],
+            'timestamp': r[5]
+        } for r in reviews
+    ]})
+
+@app.route('/api/product/<item>/reviews', methods=['POST'])
+def add_product_review(item):
+    data = request.get_json()
+    username = data.get('username')  # Can be None for anonymous
+    rating = data.get('rating')
+    review_text = data.get('review_text')
+    if not rating or not review_text:
+        return jsonify({'error': 'Rating and review text required.'}), 400
+    try:
+        rating = int(rating)
+        if rating < 1 or rating > 5:
+            raise ValueError
+    except Exception:
+        return jsonify({'error': 'Rating must be an integer between 1 and 5.'}), 400
+    success = db_utils.add_review(item, username, rating, review_text)
+    if not success:
+        return jsonify({'error': 'Failed to add review.'}), 500
+    logging.info(f"Review submitted for {item} by {username or 'anonymous'}.")
+    return jsonify({'success': True})
+
 # Serve static files (HTML, JS, CSS, etc.)
 @app.route('/', defaults={'path': 'index.html'})
 @app.route('/<path:path>')

@@ -80,6 +80,175 @@ function showStore(username) {
   });
 }
 
+// --- Product Modal Logic ---
+let productModal = null;
+
+function createProductModal() {
+  if (productModal) return productModal;
+  productModal = document.createElement('div');
+  productModal.id = 'product-modal';
+  productModal.style.display = 'none';
+  productModal.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+      <div id="modal-product-content"></div>
+    </div>
+  `;
+  document.body.appendChild(productModal);
+  // Close modal on backdrop or close button
+  productModal.querySelector('.modal-backdrop').onclick = closeProductModal;
+  productModal.querySelector('#modal-close-btn').onclick = closeProductModal;
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (productModal.style.display === 'block' && e.key === 'Escape') closeProductModal();
+  });
+  return productModal;
+}
+
+function openProductModal(itemName) {
+  const modal = createProductModal();
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  // Loading state
+  document.getElementById('modal-product-content').innerHTML = '<div class="modal-loading">Loading...</div>';
+  // Fetch product details and reviews
+  Promise.all([
+    fetch(`/api/product/${encodeURIComponent(itemName)}`).then(r => r.json()),
+    fetch(`/api/product/${encodeURIComponent(itemName)}/reviews`).then(r => r.json())
+  ]).then(([product, reviewsData]) => {
+    if (product.error) {
+      document.getElementById('modal-product-content').innerHTML = `<div class="modal-error">${product.error}</div>`;
+      return;
+    }
+    const reviews = reviewsData.reviews || [];
+    // Modal header styled like store-header
+    modal.querySelector('.modal-content').innerHTML = `
+      <div class="modal-header">
+        <span class="modal-title">${product.item}</span>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div id="modal-product-content" class="container"></div>
+    `;
+    modal.querySelector('#modal-close-btn').onclick = closeProductModal;
+    // Modal content
+    document.getElementById('modal-product-content').innerHTML = `
+      <div class="modal-product-main">
+        <img src="${product.image || 'assets/images/placeholder.png'}" alt="${product.item}" class="modal-product-img" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
+        <div class="modal-product-info">
+          <h2 class="product-name" style="margin-top:0;">${product.item}</h2>
+          <p class="product-desc">${product.description}</p>
+          <div class="modal-product-price">€ ${product.price}</div>
+          <button id="modal-add-cart-btn" class="add-cart-btn${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''} style="margin-top:1em;">${product.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
+        </div>
+      </div>
+      <div class="modal-reviews-section">
+        <h3 style="color:#1976d2;">Reviews</h3>
+        <div id="modal-reviews-list">
+          ${reviews.length === 0 ? '<p style="color:#888;">No reviews yet.</p>' : reviews.map(r => `
+            <div class="review">
+              <div class="review-header">
+                <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
+                <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+                <span class="review-date">${new Date(r.timestamp).toLocaleString()}</span>
+              </div>
+              <div class="review-text">${r.review_text}</div>
+            </div>
+          `).join('')}
+        </div>
+        <form id="modal-review-form">
+          <h4 style="color:#1976d2;">Leave a Review</h4>
+          <label>Rating:
+            <select name="rating" required>
+              <option value="">Select</option>
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Good</option>
+              <option value="3">3 - Average</option>
+              <option value="2">2 - Poor</option>
+              <option value="1">1 - Terrible</option>
+            </select>
+          </label>
+          <label>Review:<br>
+            <textarea name="review_text" rows="3" required></textarea>
+          </label>
+          <input type="text" name="username" placeholder="Your name (optional)" />
+          <button type="submit">Submit Review</button>
+          <div id="modal-review-error" style="color:#e57373;margin-top:0.5em;"></div>
+        </form>
+      </div>
+    `;
+    // Add to Cart button logic
+    const addCartBtn = document.getElementById('modal-add-cart-btn');
+    if (addCartBtn && !product.sold_out) {
+      addCartBtn.onclick = function() {
+        const cart = getCart();
+        // Prevent duplicates (optional: allow multiple quantities if desired)
+        if (!cart.find(i => i.item === product.item)) {
+          cart.push(product);
+          setCart(cart);
+          updateCartCount();
+        }
+        addCartBtn.textContent = 'Added!';
+        addCartBtn.disabled = true;
+        setTimeout(() => {
+          addCartBtn.textContent = 'Add to Cart';
+          addCartBtn.disabled = false;
+        }, 1000);
+      };
+    }
+    // Review form submit handler
+    document.getElementById('modal-review-form').onsubmit = function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const rating = form.rating.value;
+      const review_text = form.review_text.value.trim();
+      const username = form.username.value.trim();
+      if (!rating || !review_text) {
+        document.getElementById('modal-review-error').textContent = 'Rating and review text required.';
+        return;
+      }
+      fetch(`/api/product/${encodeURIComponent(itemName)}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, review_text, username })
+      }).then(r => r.json()).then(resp => {
+        if (!resp.success) {
+          document.getElementById('modal-review-error').textContent = resp.error || 'Failed to submit review.';
+        } else {
+          // Reload reviews
+          fetch(`/api/product/${encodeURIComponent(itemName)}/reviews`).then(r => r.json()).then(reviewsData2 => {
+            const reviews2 = reviewsData2.reviews || [];
+            document.getElementById('modal-reviews-list').innerHTML = reviews2.length === 0 ? '<p style="color:#888;">No reviews yet.</p>' : reviews2.map(r => `
+              <div class="review">
+                <div class="review-header">
+                  <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
+                  <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+                  <span class="review-date">${new Date(r.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="review-text">${r.review_text}</div>
+              </div>
+            `).join('');
+            form.reset();
+            document.getElementById('modal-review-error').textContent = '';
+          });
+        }
+      }).catch(() => {
+        document.getElementById('modal-review-error').textContent = 'Failed to submit review.';
+      });
+    };
+  }).catch(err => {
+    document.getElementById('modal-product-content').innerHTML = `<div class="modal-error">Failed to load product info.</div>`;
+    console.error('Error loading product modal:', err);
+  });
+}
+
+function closeProductModal() {
+  if (productModal) {
+    productModal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
 function renderItems(items) {
   const container = document.getElementById('store-items');
   if (!container) return;
@@ -87,9 +256,9 @@ function renderItems(items) {
   const visibleItems = items.filter(item => !item.unlisted);
   container.innerHTML = visibleItems.map((item, idx) => `
     <div class="product-card">
-      <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="product-img${item.sold_out ? ' sold-out-img' : ''}" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
+      <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="product-img${item.sold_out ? ' sold-out-img' : ''}" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" data-item="${item.item}" style="cursor:pointer;" />
       <div class="product-info">
-        <h3 class="product-name">${item.item}</h3>
+        <h3 class="product-name" data-item="${item.item}" style="cursor:pointer;">${item.item}</h3>
         <p class="product-desc">${item.description}</p>
         <div class="product-bottom">
           <span class="product-price">€ ${item.price}</span>
@@ -118,6 +287,14 @@ function renderItems(items) {
       }, 1000);
     });
   });
+
+  // Add event listeners for product image and title to open modal
+  container.querySelectorAll('.product-img, .product-name').forEach(el => {
+    el.addEventListener('click', function() {
+      const itemName = this.getAttribute('data-item');
+      openProductModal(itemName);
+    });
+  });
 }
 
 // Add styles for sold out button and image
@@ -138,6 +315,34 @@ function renderItems(items) {
     .sold-out-img {
       filter: grayscale(1) brightness(0.85);
     }
+  `;
+  document.head.appendChild(style);
+})();
+
+// --- Modal Styles ---
+(function() {
+  const style = document.createElement('style');
+  style.innerHTML = `
+    #product-modal { position: fixed; z-index: 10000; top: 0; left: 0; width: 100vw; height: 100vh; display: none; }
+    #product-modal .modal-backdrop { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.65); }
+    #product-modal .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; border-radius: 16px; max-width: 700px; width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 2rem 1.5rem 1.5rem 1.5rem; }
+    #product-modal .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 2rem; color: #333; cursor: pointer; }
+    #modal-product-content .modal-product-main { display: flex; gap: 2rem; align-items: flex-start; }
+    #modal-product-content .modal-product-img { width: 180px; height: 180px; object-fit: contain; border-radius: 12px; background: #f5f5f5; }
+    #modal-product-content .modal-product-info { flex: 1; }
+    #modal-product-content .modal-product-price { font-size: 1.3em; font-weight: bold; margin-top: 0.5em; }
+    #modal-product-content .modal-reviews-section { margin-top: 2em; }
+    #modal-product-content .review { border-bottom: 1px solid #eee; padding: 0.5em 0; }
+    #modal-product-content .review-header { display: flex; gap: 1em; font-size: 0.95em; color: #555; align-items: center; }
+    #modal-product-content .review-rating { color: #fbc02d; font-size: 1.1em; }
+    #modal-product-content .review-user { font-weight: bold; }
+    #modal-product-content .review-date { font-size: 0.9em; color: #888; }
+    #modal-product-content .review-text { margin-top: 0.2em; }
+    #modal-product-content .modal-loading, #modal-product-content .modal-error { text-align: center; margin: 2em 0; color: #888; }
+    #modal-product-content #modal-review-form { margin-top: 1.5em; display: flex; flex-direction: column; gap: 0.7em; }
+    #modal-product-content #modal-review-form textarea { width: 100%; resize: vertical; }
+    #modal-product-content #modal-review-form button { align-self: flex-start; background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.5em 1.2em; font-size: 1em; cursor: pointer; margin-top: 0.5em; }
+    #modal-product-content #modal-review-form button:hover { background: #1565c0; }
   `;
   document.head.appendChild(style);
 })(); 
