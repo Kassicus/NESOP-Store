@@ -360,4 +360,21 @@ body {
 #store-items .product-info {
   min-height: 120px; /* ensure info fits below larger image */
   padding-top: 0.2rem;
+}
+
+.action-btn.delete {
+  background: #e57373 !important;
+  color: #fff !important;
+}
+.action-btn.delete:hover {
+  background: #c62828 !important;
+}
+
+#product-modal .review-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 90vw;
+  /* Soft wrap at 40 characters using ch unit */
+  max-inline-size: 40ch;
+  overflow-wrap: break-word;
 } 

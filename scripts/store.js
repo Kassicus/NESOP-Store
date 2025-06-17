@@ -140,7 +140,34 @@ function openProductModal(itemName) {
           <button id="modal-add-cart-btn" class="action-btn add${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''} style="margin-top:1em;">${product.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
         </div>
       </div>
-      <div class="modal-reviews-section">
+      <form id="modal-review-form">
+      <h3 style="color:#1976d2;">Leave a review!</h3>
+        <div class="form-group">
+          <label for="modal-review-rating">Rating:</label>
+          <select id="modal-review-rating" name="rating" required>
+            <option value="">Select</option>
+            <option value="5">5 - Excellent</option>
+            <option value="4">4 - Good</option>
+            <option value="3">3 - Average</option>
+            <option value="2">2 - Poor</option>
+            <option value="1">1 - Terrible</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="modal-review-text">Review:</label>
+          <textarea id="modal-review-text" name="review_text" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="modal-review-username">Your name (optional):</label>
+          <input id="modal-review-username" type="text" name="username" />
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="action-btn add">Submit Review</button>
+          <button type="button" class="action-btn cancel" id="modal-review-cancel">Cancel</button>
+        </div>
+        <div id="modal-review-error" style="color:#e57373;margin-top:0.5em;"></div>
+      </form>
+      <div class="modal-reviews-section" style="margin-top:2.5em;">
         <h3 style="color:#1976d2;">Reviews</h3>
         <div id="modal-reviews-list">
           ${reviews.length === 0 ? '<p style="color:#888;">No reviews yet.</p>' : reviews.map(r => `
@@ -149,38 +176,12 @@ function openProductModal(itemName) {
                 <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
                 <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
                 <span class="review-date">${formatMST(r.timestamp)}</span>
-                ${isAdminUser() ? `<button class="review-delete-btn action-btn cancel" title="Delete Review" style="margin-left:0.5em;padding:0.2em 0.6em;font-size:1em;">🗑️</button>` : ''}
+                ${isAdminUser() ? `<button class="review-delete-btn action-btn delete" title="Delete Review" style="margin-left:0.5em;">Remove</button>` : ''}
               </div>
               <div class="review-text">${r.review_text}</div>
             </div>
           `).join('')}
         </div>
-        <form id="modal-review-form">
-          <div class="form-group">
-            <label for="modal-review-rating">Rating:</label>
-            <select id="modal-review-rating" name="rating" required>
-              <option value="">Select</option>
-              <option value="5">5 - Excellent</option>
-              <option value="4">4 - Good</option>
-              <option value="3">3 - Average</option>
-              <option value="2">2 - Poor</option>
-              <option value="1">1 - Terrible</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="modal-review-text">Review:</label>
-            <textarea id="modal-review-text" name="review_text" rows="3" required></textarea>
-          </div>
-          <div class="form-group">
-            <label for="modal-review-username">Your name (optional):</label>
-            <input id="modal-review-username" type="text" name="username" />
-          </div>
-          <div class="modal-actions">
-            <button type="submit" class="action-btn add">Submit Review</button>
-            <button type="button" class="action-btn cancel" id="modal-review-cancel">Cancel</button>
-          </div>
-          <div id="modal-review-error" style="color:#e57373;margin-top:0.5em;"></div>
-        </form>
       </div>
     `;
     // Add to Cart button logic
@@ -228,7 +229,7 @@ function openProductModal(itemName) {
                   <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
                   <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
                   <span class="review-date">${formatMST(r.timestamp)}</span>
-                  ${isAdminUser() ? `<button class="review-delete-btn action-btn cancel" title="Delete Review" style="margin-left:0.5em;padding:0.2em 0.6em;font-size:1em;">🗑️</button>` : ''}
+                  ${isAdminUser() ? `<button class="review-delete-btn action-btn delete" title="Delete Review" style="margin-left:0.5em;">Remove</button>` : ''}
                 </div>
                 <div class="review-text">${r.review_text}</div>
               </div>
