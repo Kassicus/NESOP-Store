@@ -183,3 +183,17 @@ def delete_review(review_id):
         return False
     finally:
         conn.close()
+
+def add_currency_to_all_users(amount):
+    """
+    Increment the balance of all users by the specified amount.
+    Returns the number of users updated.
+    """
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute('UPDATE users SET balance = balance + ?', (amount,))
+    updated = c.rowcount
+    conn.commit()
+    conn.close()
+    logger.info(f"Added {amount} to all user balances. {updated} users updated.")
+    return updated

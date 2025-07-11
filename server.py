@@ -114,6 +114,27 @@ def delete_user():
     logging.info(f"Admin deleted user: {username}")
     return jsonify({'success': True})
 
+@app.route('/api/users/add-currency', methods=['POST'])
+def add_currency_to_all_users_route():
+    data = request.get_json()
+    username = data.get('username')
+    amount = data.get('amount')
+    if not username or amount is None:
+        logging.warning(f"Invalid add-currency request: {data}")
+        return jsonify({'error': 'Username and amount required.'}), 400
+    if not db_utils.is_admin(username):
+        logging.warning(f"Unauthorized add-currency attempt by {username}.")
+        return jsonify({'error': 'Admin privileges required.'}), 403
+    try:
+        amount = float(amount)
+    except Exception:
+        return jsonify({'error': 'Amount must be a number.'}), 400
+    if amount == 0:
+        return jsonify({'error': 'Amount must not be zero.'}), 400
+    updated = db_utils.add_currency_to_all_users(amount)
+    logging.info(f"Admin {username} added {amount} to all user balances. {updated} users updated.")
+    return jsonify({'success': True, 'updated': updated})
+
 # --- Item Management (Admin) ---
 @app.route('/api/items', methods=['GET'])
 def get_items():

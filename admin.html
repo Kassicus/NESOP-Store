@@ -117,6 +117,23 @@
       pointer-events: none;
       user-select: none;
     }
+    .admin-input {
+      padding: 0.5rem 0.8rem;
+      border-radius: 4px;
+      border: 1px solid #b3c6e0;
+      font-size: 1rem;
+      margin-right: 1rem;
+      margin-bottom: 1rem;
+      width: 120px;
+      box-sizing: border-box;
+      background: #fff;
+      color: #222;
+      transition: border 0.2s;
+    }
+    .admin-input:focus {
+      border: 1.5px solid #1976d2;
+      outline: none;
+    }
   </style>
 </head>
 <body>
@@ -143,6 +160,15 @@
       <div id="users-table"></div>
       <button class="admin-btn" onclick="showAddUserForm()">Add User</button>
     </div>
+    <!-- Add Currency to All Users Form -->
+    <div class="admin-section" style="margin-bottom:1.5rem;">
+      <h3>Add Currency to All Users</h3>
+      <form id="add-currency-form" style="display:flex;align-items:center;gap:1em;">
+        <input type="number" id="add-currency-amount" class="admin-input" placeholder="Amount" step="1" required />
+        <button type="submit" class="admin-btn">Add to All Users</button>
+      </form>
+      <div id="add-currency-message" class="admin-message"></div>
+    </div>
     <div class="admin-section">
       <h3>Items</h3>
       <div id="items-table"></div>
@@ -166,6 +192,42 @@
           localStorage.removeItem('nesop_user');
           localStorage.removeItem('nesop_user_admin');
           window.location.href = 'index.html';
+        };
+      }
+      // Add Currency to All Users form handler
+      const addCurrencyForm = document.getElementById('add-currency-form');
+      if (addCurrencyForm) {
+        addCurrencyForm.onsubmit = function(e) {
+          e.preventDefault();
+          const amount = parseFloat(document.getElementById('add-currency-amount').value);
+          const messageDiv = document.getElementById('add-currency-message');
+          messageDiv.textContent = '';
+          if (isNaN(amount)) {
+            messageDiv.textContent = 'Please enter a valid amount.';
+            messageDiv.style.color = '#e57373';
+            return;
+          }
+          const username = localStorage.getItem('nesop_user');
+          fetch('/api/users/add-currency', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, amount })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              messageDiv.textContent = `Added €${amount} to all users. (${data.updated} users updated)`;
+              messageDiv.style.color = '#388e3c';
+              fetchUsers();
+            } else {
+              messageDiv.textContent = data.error || 'Failed to add currency.';
+              messageDiv.style.color = '#e57373';
+            }
+          })
+          .catch(() => {
+            messageDiv.textContent = 'Failed to add currency.';
+            messageDiv.style.color = '#e57373';
+          });
         };
       }
     });
