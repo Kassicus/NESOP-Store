@@ -134,6 +134,32 @@
       border: 1.5px solid #1976d2;
       outline: none;
     }
+    .scrollable-table-container {
+      max-height: 490px; /* header + 10 rows, each ~44px high */
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin-bottom: 1rem;
+      /* Show and style scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: #1976d2 #e3f2fd;
+    }
+    .scrollable-table-container::-webkit-scrollbar {
+      width: 8px;
+      background: #e3f2fd;
+    }
+    .scrollable-table-container::-webkit-scrollbar-thumb {
+      background: #1976d2;
+      border-radius: 6px;
+    }
+    .scrollable-table-container::-webkit-scrollbar-thumb:hover {
+      background: #125ea7;
+    }
+    .admin-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #e3f2fd;
+    }
   </style>
 </head>
 <body>
@@ -259,7 +285,7 @@
       });
     }
     function renderUsersTable(users) {
-      let html = `<table class="admin-table"><thead><tr><th>Username</th><th>Password</th><th>Balance</th><th>Admin</th><th>Actions</th></tr></thead><tbody>`;
+      let html = `<div class="scrollable-table-container"><table class="admin-table"><thead><tr><th>Username</th><th>Password</th><th>Balance</th><th>Admin</th><th>Actions</th></tr></thead><tbody>`;
       users.forEach(u => {
         html += `<tr id="user-row-${u.username}">
           <td>${u.username}</td>
@@ -272,7 +298,7 @@
           </td>
         </tr>`;
       });
-      html += `</tbody></table>`;
+      html += `</tbody></table></div>`;
       document.getElementById('users-table').innerHTML = html;
     }
     function showEditUserForm(username) {
@@ -381,7 +407,7 @@
       });
     }
     function renderItemsTable(items) {
-      let html = `<table class="admin-table"><thead><tr><th>Image</th><th>Item</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>`;
+      let html = `<div class="scrollable-table-container"><table class="admin-table"><thead><tr><th>Image</th><th>Item</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>`;
       items.forEach(i => {
         let imgSrc = i.image ? i.image : 'assets/images/placeholder.png';
         html += `<tr id="item-row-${i.item}">
@@ -395,7 +421,7 @@
           </td>
         </tr>`;
       });
-      html += `</tbody></table>`;
+      html += `</tbody></table></div>`;
       document.getElementById('items-table').innerHTML = html;
     }
     function showEditItemForm(itemName) {
