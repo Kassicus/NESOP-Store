@@ -69,6 +69,29 @@ function showStore(username) {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="cart-icon" width="32" height="32"><defs><style>.cls-1{fill:#231f20}</style></defs><g id="cart"><path class="cls-1" d="M29.46 10.14A2.94 2.94 0 0 0 27.1 9H10.22L8.76 6.35A2.67 2.67 0 0 0 6.41 5H3a1 1 0 0 0 0 2h3.41a.68.68 0 0 1 .6.31l1.65 3 .86 9.32a3.84 3.84 0 0 0 4 3.38h10.37a3.92 3.92 0 0 0 3.85-2.78l2.17-7.82a2.58 2.58 0 0 0-.45-2.27zM28 11.86l-2.17 7.83A1.93 1.93 0 0 1 23.89 21H13.48a1.89 1.89 0 0 1-2-1.56L10.73 11H27.1a1 1 0 0 1 .77.35.59.59 0 0 1 .13.51z"/><circle class="cls-1" cx="14" cy="26" r="2"/><circle class="cls-1" cx="24" cy="26" r="2"/></g></svg>
                 <span id="cart-count-badge" class="cart-count-badge">0</span>
               </a>
+              <button 
+                type="button" 
+                data-theme-toggle 
+                aria-label="Change theme"
+                style="
+                  background: rgba(255,255,255,0.18);
+                  color: #fff;
+                  border: none;
+                  border-radius: 4px;
+                  padding: 0.6rem;
+                  font-weight: bold;
+                  cursor: pointer;
+                  transition: background 0.2s;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin-right: 0.5rem;
+                "
+                onmouseover="this.style.background='#125ea7'"
+                onmouseout="this.style.background='rgba(255,255,255,0.18)'"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              </button>
               ${isAdmin ? '<button onclick="window.location.href=\'admin.html\'" class="admin-link logout-btn">Admin Panel</button>' : ''}
               <button id="logout-btn" class="logout-btn">Logout</button>
             </div>
@@ -84,6 +107,10 @@ function showStore(username) {
     document.getElementById('logout-btn').onclick = function() {
       window.nesopLogout();
     };
+    
+    // Set up theme toggle
+    setTimeout(setupThemeToggle, 100);
+    
     renderItems(items);
     updateCartCount();
   }).catch(err => {
@@ -358,15 +385,16 @@ function renderItems(items) {
   style.innerHTML = `
     #product-modal.modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.35); z-index: 1000;
+      background: var(--color-modal-overlay); z-index: 1000;
       display: flex; align-items: center; justify-content: center;
       transition: opacity 0.2s;
     }
     #product-modal .modal {
-      background: #fff; border-radius: 10px;
-      box-shadow: 0 4px 24px rgba(25, 118, 210, 0.18);
+      background: var(--color-card-bg); border-radius: 10px;
+      box-shadow: 0 4px 24px var(--color-shadow-hover);
       padding: 2rem 2.5rem; min-width: 320px; max-width: 95vw;
       z-index: 1001; position: relative; animation: modalIn 0.2s;
+      transition: background-color 0.3s ease;
     }
     @keyframes modalIn {
       from { transform: scale(0.95); opacity: 0; }
@@ -383,23 +411,24 @@ function renderItems(items) {
     }
     #product-modal .modal-close:hover { color: #f27a12; }
     #product-modal .modal-product-main { display: flex; gap: 2rem; align-items: flex-start; }
-    #product-modal .modal-product-img { width: 140px; height: 140px; object-fit: contain; border-radius: 8px; background: #e3f2fd; box-shadow: 0 1px 4px rgba(25,118,210,0.07); }
-    #product-modal .modal-product-info { flex: 1; }
+    #product-modal .modal-product-img { width: 140px; height: 140px; object-fit: contain; border-radius: 8px; background: var(--color-product-img-bg); box-shadow: 0 1px 4px var(--color-shadow-light); transition: background-color 0.3s ease; }
+    #product-modal .modal-product-info { flex: 1; color: var(--color-fg); }
     #product-modal .modal-product-price { font-size: 1.2em; font-weight: bold; margin-top: 0.5em; color: #1976d2; }
     #product-modal .modal-reviews-section { margin-top: 2em; }
-    #product-modal .review { border-bottom: 1px solid #e3f2fd; padding: 0.5em 0; }
-    #product-modal .review-header { display: flex; gap: 1em; font-size: 0.95em; color: #555; align-items: center; }
+    #product-modal .review { border-bottom: 1px solid var(--color-border-light); padding: 0.5em 0; transition: border-color 0.3s ease; }
+    #product-modal .review-header { display: flex; gap: 1em; font-size: 0.95em; color: var(--color-text-secondary); align-items: center; }
     #product-modal .review-rating { color: #fbc02d; font-size: 1.1em; }
     #product-modal .review-user { font-weight: bold; color: #1976d2; }
-    #product-modal .review-date { font-size: 0.9em; color: #888; }
-    #product-modal .review-text { margin-top: 0.2em; }
-    #product-modal .modal-loading, #product-modal .modal-error { text-align: center; margin: 2em 0; color: #888; }
+    #product-modal .review-date { font-size: 0.9em; color: var(--color-text-muted); }
+    #product-modal .review-text { margin-top: 0.2em; color: var(--color-fg); }
+    #product-modal .modal-loading, #product-modal .modal-error { text-align: center; margin: 2em 0; color: var(--color-text-muted); }
     #product-modal #modal-review-form { margin-top: 1.5em; }
     #product-modal .form-group { margin-bottom: 1rem; }
     #product-modal .form-group label { display: block; font-weight: bold; margin-bottom: 0.3rem; color: #1976d2; }
     #product-modal .form-group input, #product-modal .form-group textarea, #product-modal .form-group select {
-      display: block; width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #b3c6e0; font-size: 1rem;
-      margin-bottom: 0.2rem;
+      display: block; width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--color-border); font-size: 1rem;
+      margin-bottom: 0.2rem; background: var(--color-input-bg); color: var(--color-fg);
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
     #product-modal .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
     #product-modal .action-btn {

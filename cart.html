@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -17,6 +17,29 @@
           <span id="cart-welcome" style="font-size:1.25em; margin-left: 0; padding-left: 0;"></span>
         </div>
         <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button 
+            type="button" 
+            data-theme-toggle 
+            aria-label="Change theme"
+            style="
+              background: rgba(255,255,255,0.18);
+              color: #fff;
+              border: none;
+              border-radius: 4px;
+              padding: 0.6rem;
+              font-weight: bold;
+              cursor: pointer;
+              transition: background 0.2s;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-right: 0.5rem;
+            "
+            onmouseover="this.style.background='#125ea7'"
+            onmouseout="this.style.background='rgba(255,255,255,0.18)'"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
           <button onclick="window.location.href='index.html'" class="admin-link logout-btn">Back to Store</button>
           <button id="logout-btn" class="logout-btn">Logout</button>
         </div>
@@ -69,7 +92,7 @@
       let total = 0;
       let itemsHtml = '';
       if (cart.length === 0) {
-        itemsHtml = '<p>Your cart is empty.</p>';
+        itemsHtml = '<p style="color: var(--color-text-secondary); text-align: center; margin: 2rem 0;">Your cart is empty.</p>';
         renderCartHtml(itemsHtml, total, cart.length);
       } else {
         // Fetch latest items from API to get up-to-date image paths
@@ -202,19 +225,21 @@
     .cart-item {
       display: flex;
       align-items: center;
-      background: #fff;
+      background: var(--color-card-bg);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+      box-shadow: 0 2px 8px var(--color-shadow);
       margin-bottom: 1.2rem;
       padding: 1rem;
+      transition: background-color 0.3s ease;
     }
     .cart-item-img {
       width: 80px;
       height: 80px;
       object-fit: contain;
-      background: #e3f2fd;
+      background: var(--color-product-img-bg);
       border-radius: 6px;
       margin-right: 1.5rem;
+      transition: background-color 0.3s ease;
     }
     .cart-item-info {
       flex: 1;
@@ -226,9 +251,10 @@
       margin-bottom: 0.2rem;
     }
     .cart-item-desc {
-      color: #555;
+      color: var(--color-text-secondary);
       font-size: 0.97rem;
       margin-bottom: 0.5rem;
+      transition: color 0.3s ease;
     }
     .cart-item-price {
       font-weight: bold;
@@ -259,7 +285,8 @@
     }
     .cart-total-label {
       font-weight: bold;
-      color: #222;
+      color: var(--color-fg);
+      transition: color 0.3s ease;
     }
     .cart-total-value {
       color: #1976d2;
@@ -288,5 +315,6 @@
       background: #125ea7;
     }
   </style>
+  <script src="scripts/utils.js"></script>
 </body>
 </html> 
