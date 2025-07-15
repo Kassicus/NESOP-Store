@@ -206,7 +206,7 @@ DEPLOYMENT_TIMEOUT={config['deployment']['timeout']}
     
     def setup_systemd_service(self, config):
         """Create systemd service file"""
-        app_root = os.path.abspath('.')
+        app_root = str(self.app_root.absolute())
         service_content = f"""[Unit]
 Description=NESOP Store Application
 After=network.target
@@ -236,6 +236,7 @@ WantedBy=multi-user.target
     
     def setup_nginx_config(self, config):
         """Create nginx configuration"""
+        app_root = str(self.app_root.absolute())
         nginx_content = f"""server {{
     listen 80;
     server_name your-internal-server.yourdomain.com;
