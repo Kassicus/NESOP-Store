@@ -36,6 +36,9 @@ def create_deployment_package():
         'config.py',
         'migrate_ad_integration.py',
         'deploy_config.py',
+        'validate_deployment.py',
+        'migrate_items_to_sqlite.py',
+        'uninstall_nesop_store.sh',
         'wsgi.py',
         'requirements.txt',
         'index.html',
@@ -88,29 +91,60 @@ def create_deployment_package():
         else:
             print(f"  ⚠ {dir_name}/ not found")
     
+    # Create necessary empty directories
+    print("\nCreating directory structure...")
+    required_dirs = ['logs', 'backups', 'static']
+    for dir_name in required_dirs:
+        (package_dir / dir_name).mkdir(exist_ok=True)
+        print(f"  ✓ {dir_name}/")
+    
+    # Create empty .gitkeep files in empty directories
+    for dir_name in required_dirs:
+        (package_dir / dir_name / '.gitkeep').touch()
+    
     # Create deployment info file
     deployment_info = {
         "package_created": datetime.now().isoformat(),
-        "package_version": "1.0.0",
+        "package_version": "1.0.4",
         "python_version_required": "3.8+",
         "system_requirements": "Ubuntu 20.04 LTS or newer",
         "deployment_type": "internal_server",
         "ad_integration": "enabled",
+        "recent_fixes": [
+            "Fixed database path synchronization in migrations",
+            "Added table existence checking in migration script", 
+            "Improved deployment database initialization",
+            "Enhanced error handling for fresh deployments",
+            "Fixed database schema mismatch for items table",
+            "Updated AD configuration to use insecure LDAP (port 389)",
+            "Fixed DN pattern duplication bug in AD authentication",
+            "Hidden AD user search panel when using simple bind mode",
+            "Fixed username display to show clean username instead of email address"
+        ],
         "features": [
-            "Active Directory integration",
-            "Mock AD for testing",
-            "User management",
-            "Admin panel",
-            "Store frontend",
-            "Audit logging",
-            "Automatic deployment"
+            "Active Directory integration with simple bind mode",
+            "Mock AD for testing and development",
+            "User management with local admin permissions",
+            "Admin panel with user import/management",
+            "Store frontend with shopping cart",
+            "Audit logging for security",
+            "Automatic deployment with configuration wizard",
+            "Database validation and migration tools"
+        ],
+        "included_tools": [
+            "deploy_config.py - Interactive deployment configuration",
+            "validate_deployment.py - Deployment validation and testing",
+            "migrate_ad_integration.py - AD integration database migration",
+            "migrate_items_to_sqlite.py - Item data migration utility",
+            "uninstall_nesop_store.sh - Complete application uninstall script"
         ],
         "deployment_steps": [
             "1. Copy package to server",
-            "2. Run: python3 deploy_config.py",
+            "2. Run: python3 deploy_config.py (interactive setup)",
             "3. Run: sudo ./deploy.sh",
-            "4. Configure AD settings",
-            "5. Test and verify"
+            "4. Configure AD settings if needed",
+            "5. Test with validate_deployment.py",
+            "6. Change default admin password"
         ]
     }
     
@@ -122,7 +156,7 @@ def create_deployment_package():
 
 ## Package Information
 - Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-- Version: 1.0.0
+- Version: 1.0.4
 - Type: Internal Server Deployment with AD Integration
 
 ## What's Included
@@ -174,6 +208,7 @@ sudo ./deploy.sh
 3. Restart service: sudo systemctl restart nesop-store
 
 ### Verify
+- Run validation: `python3 validate_deployment.py`
 - Test AD user login
 - Test admin panel access
 - Test AD user search/import
@@ -182,6 +217,10 @@ sudo ./deploy.sh
 ## Files Overview
 - `server.py` - Main Flask application
 - `deploy_config.py` - Deployment configuration wizard
+- `validate_deployment.py` - Deployment validation and testing
+- `migrate_ad_integration.py` - AD integration database migration
+- `migrate_items_to_sqlite.py` - Item data migration utility
+- `uninstall_nesop_store.sh` - Complete application uninstall script
 - `AD_CONFIGURATION_TEMPLATE.md` - AD setup guide
 - `DEPLOYMENT.md` - Complete deployment guide
 - `DEPLOYMENT_CHECKLIST.md` - Deployment checklist
@@ -194,11 +233,41 @@ sudo ./deploy.sh
 - Follow AD_CONFIGURATION_TEMPLATE.md for AD setup
 - Check logs in /opt/nesop-store/logs/
 
+## Uninstall/Redeploy
+If you need to completely remove the application:
+```bash
+# Run the uninstall script
+chmod +x uninstall_nesop_store.sh
+sudo ./uninstall_nesop_store.sh
+```
+
+This will:
+- Stop and remove the systemd service
+- Remove all application files and directories
+- Clean up nginx configuration
+- Remove database files and backups
+- Clean up logs and temporary files
+- Optionally remove the system user
+- Provide verification of cleanup
+
+## Recent Improvements (v1.0.4)
+- Fixed database path synchronization in migration scripts
+- Added table existence checking for robust deployment
+- Enhanced error handling for fresh deployments
+- Improved deployment validation and testing tools
+- Added comprehensive uninstall script for clean redeployment
+- Fixed database schema mismatch for items table
+- Updated AD configuration to use insecure LDAP (port 389)
+- Fixed DN pattern duplication bug in AD authentication
+- Hidden AD user search panel when using simple bind mode
+- Fixed username display to show clean username instead of email address
+
 ## Security Notes
 - Deploy on internal network only
 - Use LDAPS for AD connections
-- Change default passwords
+- Change default passwords immediately
 - Regular security updates
+- Run validation after deployment
 
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
