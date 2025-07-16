@@ -1,0 +1,72 @@
+# NESOP Store Deployment Automation Rules
+
+## Deployment Automation
+
+When the user requests a deployment or mentions "deploy", "deployment", or "create deployment package":
+
+1. **Automatically run deployment packaging**:
+   - Execute `python3 create_deployment_package.py`
+   - This creates a timestamped deployment package with all necessary files
+   - Package includes: application files, documentation, deployment scripts, assets
+
+2. **Show deployment instructions**:
+   - Display the archive filename and size
+   - Provide server transfer and deployment steps
+   - Include admin setup and verification steps
+
+3. **Key deployment files to always include**:
+   - `server.py` - Main Flask application
+   - `db_utils.py` - Database utilities
+   - `ad_utils.py` - Active Directory integration
+   - `config.py` - Configuration management
+   - `migrate_ad_integration.py` - Database migrations
+   - `deploy_config.py` - Deployment configuration wizard
+   - `wsgi.py` - Production WSGI configuration
+   - `requirements.txt` - Python dependencies
+   - All HTML files (`index.html`, `admin.html`, `cart.html`, `register.html`)
+   - Documentation files (`README.md`, `DEPLOYMENT.md`, `AD_CONFIGURATION_TEMPLATE.md`)
+   - Asset directories (`assets/`, `scripts/`, `styles/`, `data/`)
+
+4. **Deployment verification checklist**:
+   - Package creation successful
+   - Archive size and file count verification
+   - All essential files included
+   - Documentation up to date
+
+## Admin Management Configuration
+
+The system uses local admin management (not AD groups):
+- New AD users are imported as regular users
+- Admin permissions are managed through the admin panel
+- No AD group configuration required
+- Fallback admin account: `fallback_admin / ChangeMe123!`
+
+## Deployment Commands
+
+Standard deployment workflow:
+```bash
+# On server:
+tar -xzf nesop-store-deployment-YYYYMMDD_HHMMSS.tar.gz
+cd nesop-store-deployment-YYYYMMDD_HHMMSS
+python3 deploy_config.py
+sudo ./deploy.sh
+```
+
+## File Change Monitoring
+
+When these files are modified, suggest creating a new deployment:
+- `server.py` - Core application changes
+- `ad_utils.py` - AD integration changes
+- `config.py` - Configuration changes
+- `db_utils.py` - Database changes
+- HTML files - Frontend changes
+- Configuration files - Deployment changes
+
+## Security Reminders
+
+Always remind users to:
+- Change default admin password
+- Configure AD settings properly
+- Deploy on internal network only
+- Use LDAPS for AD connections
+- Test all functionality after deployment 
