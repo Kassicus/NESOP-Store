@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - NESOP Store</title>
+  <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    .admin-panel-container { max-width: 900px; margin: 40px auto; background: var(--color-card-bg); border-radius: 8px; box-shadow: 0 2px 8px var(--color-shadow); padding: 2rem; transition: background-color 0.3s ease; }
+    .admin-panel-container h2 { color: #1976d2; margin-top: 0; }
+    .admin-panel-container h3 { color: var(--color-fg); transition: color 0.3s ease; }
+    .admin-btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; padding: 0.5rem 1.2rem; font-weight: bold; font-size: 1rem; cursor: pointer; margin-right: 1rem; margin-bottom: 1rem; }
+    .admin-btn:disabled { background: #b3c6e0; cursor: not-allowed; }
+    .admin-section { margin-bottom: 2.5rem; }
+    .admin-message { margin-top: 0.5rem; font-size: 1rem; color: var(--color-fg); transition: color 0.3s ease; }
+    .admin-nav { margin-bottom: 2rem; }
+    .admin-nav a { color: #1976d2; text-decoration: none; font-weight: bold; margin-right: 1.5rem; }
+    .admin-nav a:hover { text-decoration: underline; }
+    .admin-table th, .admin-table td { padding: 0.5rem 0.7rem; border: 1px solid var(--color-border); transition: border-color 0.3s ease; }
+    .admin-table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+    .admin-table th { background: var(--color-table-header); color: #1976d2; font-weight: bold; transition: background-color 0.3s ease; }
+    .admin-table td { background: var(--color-card-bg); color: var(--color-fg); transition: background-color 0.3s ease, color 0.3s ease; }
+    .admin-table input { width: 100%; }
+    .admin-table th:last-child, .admin-table td:last-child {
+      width: 150px;
+      min-width: 150px;
+      max-width: 150px;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--color-modal-overlay);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+    .modal {
+      background: var(--color-card-bg);
+      border-radius: 10px;
+      box-shadow: 0 4px 24px var(--color-shadow-hover);
+      padding: 2rem 2.5rem;
+      min-width: 320px;
+      max-width: 95vw;
+      z-index: 1001;
+      position: relative;
+      animation: modalIn 0.2s;
+      transition: background-color 0.3s ease;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal input {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--color-border);
+      font-size: 1rem;
+      background: var(--color-input-bg);
+      color: var(--color-fg);
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+    .modal .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .modal .form-group {
+      margin-bottom: 1rem;
+    }
+    .modal label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+      color: #1976d2;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      cursor: pointer;
+    }
+    .modal .action-btn {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 0.4rem 0.8rem;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .modal .action-btn.cancel {
+      background: #9e9e9e;
+    }
+    .modal .action-btn.save,
+    .modal .action-btn.add {
+      background: #1976d2;
+    }
+    .modal .action-btn.cancel:hover {
+      background: #757575;
+    }
+    .modal .action-btn.save:hover,
+    .modal .action-btn.add:hover {
+      background: #125ea7;
+    }
+    .blurred {
+      filter: blur(4px) grayscale(0.1);
+      pointer-events: none;
+      user-select: none;
+    }
+    .admin-input {
+      padding: 0.5rem 0.8rem;
+      border-radius: 4px;
+      border: 1px solid var(--color-border);
+      font-size: 1rem;
+      margin-right: 1rem;
+      margin-bottom: 1rem;
+      width: 120px;
+      box-sizing: border-box;
+      background: var(--color-input-bg);
+      color: var(--color-fg);
+      transition: border 0.2s, background-color 0.3s ease, color 0.3s ease;
+    }
+    .admin-input:focus {
+      border: 1.5px solid #1976d2;
+      outline: none;
+    }
+    .scrollable-table-container {
+      max-height: 490px; /* header + 10 rows, each ~44px high */
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin-bottom: 1rem;
+      /* Show and style scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: #1976d2 var(--color-border-light);
+    }
+    .scrollable-table-container::-webkit-scrollbar {
+      width: 8px;
+      background: var(--color-border-light);
+    }
+    .scrollable-table-container::-webkit-scrollbar-thumb {
+      background: #1976d2;
+      border-radius: 6px;
+    }
+    .scrollable-table-container::-webkit-scrollbar-thumb:hover {
+      background: #125ea7;
+    }
+    .admin-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--color-table-header);
+      transition: background-color 0.3s ease;
+    }
+    
+    /* AD User Management Styles */
+    .ad-user-row {
+      background: var(--color-card-bg);
+      transition: background-color 0.3s ease;
+    }
+    .ad-user-row.imported {
+      background: var(--color-success-bg, #e8f5e8);
+    }
+    .ad-user-row.selected {
+      background: var(--color-primary-bg, #e3f2fd);
+    }
+    .ad-user-checkbox {
+      cursor: pointer;
+      margin: 0;
+    }
+    .ad-user-status {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .ad-user-status.imported {
+      background: var(--color-success-bg, #4caf50);
+      color: white;
+    }
+    .ad-user-status.available {
+      background: var(--color-info-bg, #2196f3);
+      color: white;
+    }
+    .ad-user-status.admin {
+      background: var(--color-warning-bg, #ff9800);
+      color: white;
+    }
+    .admin-input {
+      padding: 0.5rem;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-size: 0.9rem;
+      background: var(--color-card-bg);
+      color: var(--color-fg);
+      transition: border-color 0.3s ease, background-color 0.3s ease;
+    }
+    .admin-input:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <header class="store-header">
+    <div class="container">
+      <div style="display: flex; justify-content: center; align-items: center; width: 60px; height: 60px; background-color: #fff; border-radius: 50%; margin: 0; padding: 0;">
+        <img src="assets/images/nesop-logo.png" alt="NESOP Logo" class="nesop-logo" style="width: 40px; height: 40px; margin: 0; padding: 0;">
+      </div>
+      <div class="user-info" style="display: flex; justify-content: center; align-items: center; flex-direction: row; margin-top: 0.5rem; margin-bottom: 0.5rem; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; margin-left: 2rem;">
+          <span id="admin-welcome" style="font-size:1.25em; margin-left: 0; padding-left: 0;"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button 
+            type="button" 
+            data-theme-toggle 
+            aria-label="Change theme"
+            style="
+              background: rgba(255,255,255,0.18);
+              color: #fff;
+              border: none;
+              border-radius: 4px;
+              padding: 0.6rem;
+              font-weight: bold;
+              cursor: pointer;
+              transition: background 0.2s;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-right: 0.5rem;
+            "
+            onmouseover="this.style.background='#125ea7'"
+            onmouseout="this.style.background='rgba(255,255,255,0.18)'"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+          <button onclick="window.location.href='index.html'" class="admin-link logout-btn">Back to Store</button>
+          <button id="logout-btn" class="logout-btn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="admin-panel-container">
+    <h2>Admin Panel</h2>
+    <div class="admin-section">
+      <h3>Users</h3>
+      <div id="users-table"></div>
+      <button class="admin-btn" onclick="showAddUserForm()">Add User</button>
+    </div>
+    
+    <!-- AD User Management Section -->
+    <div class="admin-section" id="ad-users-section">
+      <h3>AD User Management</h3>
+      <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+        <input type="text" id="ad-search-term" class="admin-input" placeholder="Search AD users..." style="flex: 1;">
+        <button class="admin-btn" onclick="searchADUsers()">Search</button>
+        <button class="admin-btn" onclick="importSelectedADUsers()" id="import-selected-btn" disabled>Import Selected</button>
+      </div>
+      <div id="ad-users-table"></div>
+      <div id="ad-search-message" class="admin-message" style="margin-top: 1rem;"></div>
+    </div>
+    <!-- Add Currency to All Users Form -->
+    <div class="admin-section" style="margin-bottom:1.5rem;">
+      <h3>Add Currency to All Users</h3>
+      <form id="add-currency-form" style="display:flex;align-items:center;gap:1em;">
+        <input type="number" id="add-currency-amount" class="admin-input" placeholder="Amount" step="1" required />
+        <button type="submit" class="admin-btn">Add to All Users</button>
+      </form>
+      <div id="add-currency-message" class="admin-message"></div>
+    </div>
+    <div class="admin-section">
+      <h3>Items</h3>
+      <div id="items-table"></div>
+      <button class="admin-btn" onclick="showAddItemForm()">Add Item</button>
+    </div>
+  </div>
+  <div id="modal-root" style="display:none;"></div>
+  <script>
+    // Utility to capitalize the first letter of a string
+    function capitalizeFirstLetter(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+    // Set welcome message with username
+    document.addEventListener('DOMContentLoaded', function() {
+      const username = localStorage.getItem('nesop_user') || '';
+      document.getElementById('admin-welcome').innerHTML = `Welcome <b style="text-transform:capitalize;">${capitalizeFirstLetter(username)}</b>!`;
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) {
+        logoutBtn.onclick = function() {
+          localStorage.removeItem('nesop_user');
+          localStorage.removeItem('nesop_user_admin');
+          window.location.href = 'index.html';
+        };
+      }
+      // Add Currency to All Users form handler
+      const addCurrencyForm = document.getElementById('add-currency-form');
+      if (addCurrencyForm) {
+        addCurrencyForm.onsubmit = function(e) {
+          e.preventDefault();
+          const amount = parseFloat(document.getElementById('add-currency-amount').value);
+          const messageDiv = document.getElementById('add-currency-message');
+          messageDiv.textContent = '';
+          if (isNaN(amount)) {
+            messageDiv.textContent = 'Please enter a valid amount.';
+            messageDiv.style.color = '#e57373';
+            return;
+          }
+          const username = localStorage.getItem('nesop_user');
+          fetch('/api/users/add-currency', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, amount })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              messageDiv.textContent = `Added €${amount} to all users. (${data.updated} users updated)`;
+              messageDiv.style.color = '#388e3c';
+              fetchUsers();
+            } else {
+              messageDiv.textContent = data.error || 'Failed to add currency.';
+              messageDiv.style.color = '#e57373';
+            }
+          })
+          .catch(() => {
+            messageDiv.textContent = 'Failed to add currency.';
+            messageDiv.style.color = '#e57373';
+          });
+        };
+      }
+    });
+    
+    // Check if user is admin
+    const currentUser = localStorage.getItem('nesop_user');
+    if (!currentUser) {
+      alert('Please log in first.');
+      window.location.href = 'index.html';
+    } else {
+      fetch('/api/check-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.is_admin) {
+          alert('Admin access only.');
+          window.location.href = 'index.html';
+        }
+      });
+    }
+    
+    // --- AD User Management ---
+    let adUsersData = [];
+    
+    function searchADUsers() {
+      const searchTerm = document.getElementById('ad-search-term').value.trim() || '*';
+      const username = localStorage.getItem('nesop_user');
+      const messageDiv = document.getElementById('ad-search-message');
+      
+      messageDiv.textContent = 'Searching AD users...';
+      messageDiv.style.color = '#2196f3';
+      
+      fetch('/api/ad-users/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, search_term: searchTerm })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          adUsersData = data.users;
+          renderADUsersTable(data.users);
+          messageDiv.textContent = `Found ${data.total} AD users`;
+          messageDiv.style.color = '#4caf50';
+        } else {
+          messageDiv.textContent = data.error || 'Failed to search AD users';
+          messageDiv.style.color = '#f44336';
+          document.getElementById('ad-users-table').innerHTML = '';
+        }
+      })
+      .catch(error => {
+        console.error('Error searching AD users:', error);
+        messageDiv.textContent = 'Error searching AD users';
+        messageDiv.style.color = '#f44336';
+        document.getElementById('ad-users-table').innerHTML = '';
+      });
+    }
+    
+    function renderADUsersTable(users) {
+      if (!users || users.length === 0) {
+        document.getElementById('ad-users-table').innerHTML = '<p>No AD users found.</p>';
+        return;
+      }
+      
+      let html = `
+        <div class="scrollable-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" id="select-all-ad-users" onclick="toggleSelectAllADUsers()" class="ad-user-checkbox">
+                </th>
+                <th>Username</th>
+                <th>Display Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      
+      users.forEach(user => {
+        const statusClass = user.imported ? 'imported' : 'available';
+        const adminBadge = user.is_admin ? '<span class="ad-user-status admin">Admin</span>' : '';
+        const rowClass = user.imported ? 'ad-user-row imported' : 'ad-user-row';
+        
+        html += `
+          <tr class="${rowClass}" data-username="${user.sAMAccountName}">
+            <td>
+              <input type="checkbox" class="ad-user-checkbox user-select" 
+                     value="${user.sAMAccountName}" 
+                     ${user.imported ? 'disabled' : ''}
+                     onchange="updateImportButton()">
+            </td>
+            <td><strong>${user.sAMAccountName}</strong></td>
+            <td>${user.displayName || user.sAMAccountName}</td>
+            <td>${user.mail || '-'}</td>
+            <td>${user.department || '-'}</td>
+            <td>
+              <span class="ad-user-status ${statusClass}">
+                ${user.imported ? 'Imported' : 'Available'}
+              </span>
+              ${adminBadge}
+            </td>
+            <td>
+              ${user.imported ? 
+                `<button class="admin-btn" onclick="syncADUser('${user.sAMAccountName}')" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">Sync</button>` : 
+                `<button class="admin-btn" onclick="importSingleADUser('${user.sAMAccountName}')" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">Import</button>`
+              }
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      document.getElementById('ad-users-table').innerHTML = html;
+      updateImportButton();
+    }
+    
+    function toggleSelectAllADUsers() {
+      const selectAllCheckbox = document.getElementById('select-all-ad-users');
+      const userCheckboxes = document.querySelectorAll('.user-select:not(:disabled)');
+      
+      userCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+      });
+      
+      updateImportButton();
+    }
+    
+    function updateImportButton() {
+      const selectedCheckboxes = document.querySelectorAll('.user-select:checked');
+      const importButton = document.getElementById('import-selected-btn');
+      
+      importButton.disabled = selectedCheckboxes.length === 0;
+      importButton.textContent = selectedCheckboxes.length > 0 ? 
+        `Import Selected (${selectedCheckboxes.length})` : 'Import Selected';
+    }
+    
+    function importSelectedADUsers() {
+      const selectedCheckboxes = document.querySelectorAll('.user-select:checked');
+      const selectedUsernames = Array.from(selectedCheckboxes).map(cb => cb.value);
+      
+      if (selectedUsernames.length === 0) {
+        alert('Please select users to import');
+        return;
+      }
+      
+      const username = localStorage.getItem('nesop_user');
+      const messageDiv = document.getElementById('ad-search-message');
+      
+      messageDiv.textContent = `Importing ${selectedUsernames.length} users...`;
+      messageDiv.style.color = '#2196f3';
+      
+      fetch('/api/ad-users/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, ad_usernames: selectedUsernames })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const imported = data.total_imported;
+          const failed = data.total_failed;
+          
+          messageDiv.textContent = `Import completed: ${imported} successful, ${failed} failed`;
+          messageDiv.style.color = imported > 0 ? '#4caf50' : '#f44336';
+          
+          // Refresh the AD users table and local users table
+          searchADUsers();
+          fetchUsers();
+          
+          // Show detailed results if there were failures
+          if (failed > 0) {
+            let failureDetails = 'Failed imports:\n';
+            data.failed.forEach(f => {
+              failureDetails += `- ${f.username}: ${f.error}\n`;
+            });
+            alert(failureDetails);
+          }
+        } else {
+          messageDiv.textContent = data.error || 'Failed to import users';
+          messageDiv.style.color = '#f44336';
+        }
+      })
+      .catch(error => {
+        console.error('Error importing AD users:', error);
+        messageDiv.textContent = 'Error importing AD users';
+        messageDiv.style.color = '#f44336';
+      });
+    }
+    
+    function importSingleADUser(adUsername) {
+      const username = localStorage.getItem('nesop_user');
+      const messageDiv = document.getElementById('ad-search-message');
+      
+      messageDiv.textContent = `Importing user ${adUsername}...`;
+      messageDiv.style.color = '#2196f3';
+      
+      fetch('/api/ad-users/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, ad_usernames: [adUsername] })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.total_imported > 0) {
+          messageDiv.textContent = `User ${adUsername} imported successfully`;
+          messageDiv.style.color = '#4caf50';
+          
+          // Refresh tables
+          searchADUsers();
+          fetchUsers();
+        } else {
+          const error = data.failed && data.failed[0] ? data.failed[0].error : 'Unknown error';
+          messageDiv.textContent = `Failed to import ${adUsername}: ${error}`;
+          messageDiv.style.color = '#f44336';
+        }
+      })
+      .catch(error => {
+        console.error('Error importing AD user:', error);
+        messageDiv.textContent = `Error importing user ${adUsername}`;
+        messageDiv.style.color = '#f44336';
+      });
+    }
+    
+    function syncADUser(adUsername) {
+      const username = localStorage.getItem('nesop_user');
+      const messageDiv = document.getElementById('ad-search-message');
+      
+      messageDiv.textContent = `Syncing user ${adUsername}...`;
+      messageDiv.style.color = '#2196f3';
+      
+      fetch('/api/ad-users/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, ad_username: adUsername })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          messageDiv.textContent = `User ${adUsername} synced successfully`;
+          messageDiv.style.color = '#4caf50';
+          
+          // Refresh tables
+          searchADUsers();
+          fetchUsers();
+        } else {
+          messageDiv.textContent = data.error || `Failed to sync ${adUsername}`;
+          messageDiv.style.color = '#f44336';
+        }
+      })
+      .catch(error => {
+        console.error('Error syncing AD user:', error);
+        messageDiv.textContent = `Error syncing user ${adUsername}`;
+        messageDiv.style.color = '#f44336';
+      });
+    }
+    
+    // --- Users CRUD ---
+    function fetchUsers() {
+      fetch('/api/users').then(res => res.json()).then(data => {
+        renderUsersTable(data.users || []);
+      });
+    }
+    function renderUsersTable(users) {
+      let html = `<div class="scrollable-table-container"><table class="admin-table"><thead><tr><th>Username</th><th>Password</th><th>Balance</th><th>Admin</th><th>Actions</th></tr></thead><tbody>`;
+      users.forEach(u => {
+        html += `<tr id="user-row-${u.username}">
+          <td>${u.username}</td>
+          <td>••••••••</td>
+          <td>${u.balance}</td>
+          <td>${u.is_admin ? 'Yes' : 'No'}</td>
+          <td>
+            <button class="action-btn edit" onclick="showEditUserForm('${u.username}')">Edit</button>
+            <button class="action-btn delete" onclick="deleteUser('${u.username}')">Delete</button>
+          </td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      document.getElementById('users-table').innerHTML = html;
+    }
+    function showEditUserForm(username) {
+      fetch('/api/users').then(res => res.json()).then(data => {
+        const user = (data.users || []).find(u => u.username === username);
+        if (!user) return;
+        const html = `
+          <h3>Edit User</h3>
+          <div class="form-group">
+            <label for="edit-username">Username</label>
+            <input id='edit-username' value='${user.username}' disabled />
+          </div>
+          <div class="form-group">
+            <label for="edit-password">Password</label>
+            <input id='edit-password' type='password' value='${user.password}' />
+          </div>
+          <div class="form-group">
+            <label for="edit-balance">Balance</label>
+            <input id='edit-balance' type='number' value='${user.balance}' />
+          </div>
+          <div class="form-group checkbox-group">
+            <label for="edit-admin">
+              <input id='edit-admin' type='checkbox' ${user.is_admin ? 'checked' : ''} />
+              Administrator
+            </label>
+          </div>
+          <div class='modal-actions'>
+            <button class='action-btn save' onclick='saveEditUser()'>Save</button>
+            <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
+          </div>`;
+        showModal(html);
+      });
+    }
+    function saveEditUser() {
+      const username = document.getElementById('edit-username').value;
+      const password = document.getElementById('edit-password').value;
+      const balance = parseInt(document.getElementById('edit-balance').value);
+      const is_admin = document.getElementById('edit-admin').checked ? 1 : 0;
+      const payload = { username, password, balance, is_admin };
+      fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(res => res.json()).then(data => {
+          closeModal();
+          fetchUsers();
+        });
+    }
+    function deleteUser(username) {
+      if (!confirm('Delete user ' + username + '?')) return;
+      fetch('/api/users', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) })
+        .then(res => res.json()).then(data => {
+          fetchUsers();
+        });
+    }
+    function showModal(contentHtml) {
+      document.getElementById('modal-root').innerHTML = `<div class='modal-overlay' onclick='closeModal(event)'><div class='modal' onclick='event.stopPropagation()'>${contentHtml}</div></div>`;
+      document.getElementById('modal-root').style.display = 'block';
+      document.querySelector('.admin-panel-container').classList.add('blurred');
+    }
+    function closeModal(e) {
+      if (e && e.target && !e.target.classList.contains('modal-overlay')) return;
+      document.getElementById('modal-root').style.display = 'none';
+      document.getElementById('modal-root').innerHTML = '';
+      document.querySelector('.admin-panel-container').classList.remove('blurred');
+    }
+    function showAddUserForm() {
+      const html = `
+        <h3>Add User</h3>
+        <div class="form-group">
+          <label for="add-username">Username</label>
+          <input id='add-username' />
+        </div>
+        <div class="form-group">
+          <label for="add-password">Password</label>
+          <input id='add-password' type='password' />
+        </div>
+        <div class="form-group">
+          <label for="add-balance">Balance</label>
+          <input id='add-balance' type='number' value='0' />
+        </div>
+        <div class="form-group checkbox-group">
+          <label for="add-admin">
+            <input id='add-admin' type='checkbox' />
+            Administrator
+          </label>
+        </div>
+        <div class='modal-actions'>
+          <button class='action-btn add' onclick='addUser()'>Add</button>
+          <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
+        </div>`;
+      showModal(html);
+    }
+    function addUser() {
+      const username = document.getElementById('add-username').value.trim();
+      const password = document.getElementById('add-password').value;
+      const balance = parseInt(document.getElementById('add-balance').value) || 0;
+      const is_admin = document.getElementById('add-admin').checked ? 1 : 0;
+      fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, balance, is_admin }) })
+        .then(res => res.json()).then(data => {
+          closeModal();
+          fetchUsers();
+        });
+    }
+    // --- Items CRUD ---
+    function fetchItems() {
+      fetch('/api/items').then(res => res.json()).then(data => {
+        renderItemsTable(data.items || []);
+      });
+    }
+    function renderItemsTable(items) {
+      let html = `<div class="scrollable-table-container"><table class="admin-table"><thead><tr><th>Image</th><th>Item</th><th>Description</th><th>Price</th><th>Actions</th></tr></thead><tbody>`;
+      items.forEach(i => {
+        let imgSrc = i.image ? i.image : 'assets/images/placeholder.png';
+        html += `<tr id="item-row-${i.item}">
+          <td><img src="${imgSrc}" alt="${i.item}" style="max-width:60px;max-height:60px;object-fit:cover;border-radius:6px;" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" /></td>
+          <td>${i.item}</td>
+          <td>${i.description}</td>
+          <td>${i.price}</td>
+          <td>
+            <button class="action-btn edit" onclick="showEditItemForm('${i.item}')">Edit</button>
+            <button class="action-btn delete" onclick="deleteItem('${i.item}')">Delete</button>
+          </td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      document.getElementById('items-table').innerHTML = html;
+    }
+    function showEditItemForm(itemName) {
+      // Find the item in the current table (assume fetchItems has just run)
+      fetch('/api/items').then(res => res.json()).then(data => {
+        const item = (data.items || []).find(i => i.item === itemName);
+        if (!item) return;
+        const html = `
+          <h3>Edit Item</h3>
+          <img src='${item.image ? item.image : 'assets/images/placeholder.png'}' alt='${item.item}' style='max-width:80px;max-height:80px;object-fit:cover;border-radius:6px;margin-bottom:1em;' onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
+          <div class="form-group">
+            <label for="edit-item">Item Name</label>
+            <input id='edit-item' value='${item.item}' disabled />
+          </div>
+          <div class="form-group">
+            <label for="edit-description">Description</label>
+            <input id='edit-description' value='${item.description}' />
+          </div>
+          <div class="form-group">
+            <label for="edit-price">Price</label>
+            <input id='edit-price' type='number' value='${item.price}' />
+          </div>
+          <div class="form-group">
+            <label for="edit-image">New Image (Optional)</label>
+            <input id='edit-image' type='file' accept='image/*' />
+          </div>
+          <div class="form-group checkbox-group">
+            <label for="edit-sold-out">
+              <input id='edit-sold-out' type='checkbox' ${item.sold_out ? 'checked' : ''} />
+              Sold Out
+            </label>
+          </div>
+          <div class="form-group checkbox-group">
+            <label for="edit-unlisted">
+              <input id='edit-unlisted' type='checkbox' ${item.unlisted ? 'checked' : ''} />
+              Unlisted
+            </label>
+          </div>
+          <div class='modal-actions'>
+            <button class='action-btn save' onclick='saveEditItem()'>Save</button>
+            <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
+          </div>`;
+        showModal(html);
+      });
+    }
+    function saveEditItem() {
+      const item = document.getElementById('edit-item').value;
+      const description = document.getElementById('edit-description').value;
+      const price = parseFloat(document.getElementById('edit-price').value) || 0;
+      const imageInput = document.getElementById('edit-image');
+      const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const soldOut = document.getElementById('edit-sold-out').checked ? 1 : 0;
+      const unlisted = document.getElementById('edit-unlisted').checked ? 1 : 0;
+      const formData = new FormData();
+      formData.append('item', item);
+      formData.append('description', description);
+      formData.append('price', price);
+      formData.append('sold_out', soldOut);
+      formData.append('unlisted', unlisted);
+      if (imageFile) formData.append('image', imageFile);
+      fetch('/api/items', { method: 'PUT', body: formData })
+        .then(res => res.json()).then(data => {
+          closeModal();
+          fetchItems();
+        });
+    }
+    function deleteItem(item) {
+      if (!confirm('Delete item ' + item + '?')) return;
+      fetch('/api/items', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item }) })
+        .then(res => res.json()).then(data => {
+          fetchItems();
+        });
+    }
+    function showAddItemForm() {
+      const html = `
+        <h3>Add Item</h3>
+        <div class="form-group">
+          <label for="add-item">Item Name</label>
+          <input id='add-item' />
+        </div>
+        <div class="form-group">
+          <label for="add-description">Description</label>
+          <input id='add-description' />
+        </div>
+        <div class="form-group">
+          <label for="add-price">Price</label>
+          <input id='add-price' type='number' value='0' />
+        </div>
+        <div class="form-group">
+          <label for="add-image">Image (Optional)</label>
+          <input id='add-image' type='file' accept='image/*' />
+        </div>
+        <div class="form-group checkbox-group">
+          <label for="add-sold-out">
+            <input id='add-sold-out' type='checkbox' />
+            Sold Out
+          </label>
+        </div>
+        <div class="form-group checkbox-group">
+          <label for="add-unlisted">
+            <input id='add-unlisted' type='checkbox' />
+            Unlisted
+          </label>
+        </div>
+        <div class='modal-actions'>
+          <button class='action-btn add' onclick='addItem()'>Add</button>
+          <button class='action-btn cancel' onclick='closeModal()'>Cancel</button>
+        </div>`;
+      showModal(html);
+    }
+    function addItem() {
+      const item = document.getElementById('add-item').value.trim();
+      const description = document.getElementById('add-description').value;
+      const price = parseFloat(document.getElementById('add-price').value) || 0;
+      const imageInput = document.getElementById('add-image');
+      const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const soldOut = document.getElementById('add-sold-out').checked ? 1 : 0;
+      const unlisted = document.getElementById('add-unlisted').checked ? 1 : 0;
+      const formData = new FormData();
+      formData.append('item', item);
+      formData.append('description', description);
+      formData.append('price', price);
+      formData.append('sold_out', soldOut);
+      formData.append('unlisted', unlisted);
+      if (imageFile) formData.append('image', imageFile);
+      fetch('/api/items', { method: 'POST', body: formData })
+        .then(res => res.json()).then(data => {
+          closeModal();
+          fetchItems();
+        });
+    }
+    // Initial load
+    fetchUsers();
+    fetchItems();
+    
+    // Initialize AD search functionality
+    document.getElementById('ad-search-term').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchADUsers();
+      }
+    });
+    
+    // Check if AD is enabled and show/hide the section
+    const isAdmin = localStorage.getItem('nesop_user_admin') === 'true';
+    if (isAdmin) {
+      // Perform initial AD search for all users
+      searchADUsers();
+    }
+  </script>
+  <script src="scripts/utils.js"></script>
+</body>
+</html> 
