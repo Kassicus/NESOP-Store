@@ -394,3 +394,212 @@ def update_ad_sync_timestamp(username: str) -> bool:
     except Exception as e:
         logger.error(f"Error updating AD sync timestamp for {username}: {str(e)}")
         return False
+
+# --- Order Management Functions ---
+
+def create_orders_table():
+    """Create orders table if it doesn't exist"""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS orders (
+                order_id TEXT PRIMARY KEY,
+                username TEXT NOT NULL,
+                user_email TEXT,
+                total_amount REAL NOT NULL,
+                order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'completed',
+                email_sent INTEGER DEFAULT 0,
+                FOREIGN KEY (username) REFERENCES users(username)
+            )
+        ''')
+        
+        # Create order items table for order details
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS order_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id TEXT NOT NULL,
+                item_name TEXT NOT NULL,
+                item_price REAL NOT NULL,
+                quantity INTEGER DEFAULT 1,
+                FOREIGN KEY (order_id) REFERENCES orders(order_id)
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        logger.info("Orders tables created successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error creating orders tables: {str(e)}")
+        return False
+
+def add_order(order_id: str, username: str, user_email: str, total_amount: float, items: list):
+    """
+    Add a new order to the database
+    
+    Args:
+        order_id: Unique order identifier
+        username: Username of the customer
+        user_email: Email address of the customer
+        total_amount: Total order amount
+        items: List of order items with name and price
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Insert order
+        c.execute('''
+            INSERT INTO orders (order_id, username, user_email, total_amount, status)
+            VALUES (?, ?, ?, ?, 'completed')
+        ''', (order_id, username, user_email, total_amount))
+        
+        # Insert order items
+        for item in items:
+            c.execute('''
+                INSERT INTO order_items (order_id, item_name, item_price, quantity)
+                VALUES (?, ?, ?, ?)
+            ''', (order_id, item.get('name', ''), item.get('price', 0), item.get('quantity', 1)))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Order {order_id} added successfully for user {username}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error adding order {order_id}: {str(e)}")
+        return False
+
+def get_order(order_id: str):
+    """Get order details by order ID"""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Get order info
+        c.execute('''
+            SELECT order_id, username, user_email, total_amount, order_date, status, email_sent
+            FROM orders WHERE order_id = ?
+        ''', (order_id,))
+        order = c.fetchone()
+        
+        if not order:
+            conn.close()
+            return None
+        
+        # Get order items
+        c.execute('''
+            SELECT item_name, item_price, quantity
+            FROM order_items WHERE order_id = ?
+        ''', (order_id,))
+        items = c.fetchall()
+        
+        conn.close()
+        
+        # Format result
+        return {
+            'order_id': order[0],
+            'username': order[1],
+            'user_email': order[2],
+            'total_amount': order[3],
+            'order_date': order[4],
+            'status': order[5],
+            'email_sent': order[6],
+            'items': [{'name': item[0], 'price': item[1], 'quantity': item[2]} for item in items]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting order {order_id}: {str(e)}")
+        return None
+
+def get_user_orders(username: str):
+    """Get all orders for a specific user"""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        c.execute('''
+            SELECT order_id, user_email, total_amount, order_date, status, email_sent
+            FROM orders WHERE username = ? ORDER BY order_date DESC
+        ''', (username,))
+        orders = c.fetchall()
+        
+        conn.close()
+        
+        return [
+            {
+                'order_id': order[0],
+                'user_email': order[1],
+                'total_amount': order[2],
+                'order_date': order[3],
+                'status': order[4],
+                'email_sent': order[5]
+            }
+            for order in orders
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting orders for user {username}: {str(e)}")
+        return []
+
+def mark_email_sent(order_id: str):
+    """Mark an order's email as sent"""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        c.execute('''
+            UPDATE orders SET email_sent = 1 WHERE order_id = ?
+        ''', (order_id,))
+        
+        success = c.rowcount > 0
+        conn.commit()
+        conn.close()
+        
+        if success:
+            logger.info(f"Marked email as sent for order {order_id}")
+        
+        return success
+        
+    except Exception as e:
+        logger.error(f"Error marking email sent for order {order_id}: {str(e)}")
+        return False
+
+def get_all_orders():
+    """Get all orders (admin function)"""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        c.execute('''
+            SELECT order_id, username, user_email, total_amount, order_date, status, email_sent
+            FROM orders ORDER BY order_date DESC
+        ''', )
+        orders = c.fetchall()
+        
+        conn.close()
+        
+        return [
+            {
+                'order_id': order[0],
+                'username': order[1],
+                'user_email': order[2],
+                'total_amount': order[3],
+                'order_date': order[4],
+                'status': order[5],
+                'email_sent': order[6]
+            }
+            for order in orders
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting all orders: {str(e)}")
+        return []
+
+# Initialize orders table on import
+create_orders_table()

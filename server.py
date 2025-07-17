@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import ad_utils
 import config
+import email_utils
+import uuid
 
 app = Flask(__name__, static_folder='.')
 
@@ -43,6 +45,93 @@ def update_balance():
     db_utils.update_balance(username, new_balance)
     logging.info(f"Balance updated for user {username} to {new_balance}")
     return jsonify({'success': True})
+
+@app.route('/api/place-order', methods=['POST'])
+def place_order():
+    """
+    Place a new order and send email confirmation
+    """
+    data = request.get_json()
+    username = data.get('username')
+    items = data.get('items', [])
+    total = data.get('total', 0)
+    
+    if not username or not items or not isinstance(total, (int, float)) or total <= 0:
+        logging.warning(f"Invalid place-order request: {data}")
+        return jsonify({'error': 'Invalid request parameters'}), 400
+    
+    # Verify user exists
+    user = db_utils.get_user(username)
+    if not user:
+        logging.warning(f"User not found for order: {username}")
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Check if user has sufficient balance
+    user_balance = user[2]  # balance is the 3rd column
+    if user_balance < total:
+        logging.warning(f"Insufficient balance for user {username}: {user_balance} < {total}")
+        return jsonify({'error': 'Insufficient balance'}), 400
+    
+    try:
+        # Generate unique order ID
+        order_id = f"NESOP-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
+        
+        # Get user email (from AD info if available, otherwise construct from username)
+        user_email = None
+        if len(user) > 8 and user[8]:  # ad_email field
+            user_email = user[8]
+        else:
+            # Construct email if AD email not available
+            email_domain = config.get_email_config().server.split('.', 1)[-1] if '.' in config.get_email_config().server else 'yourdomain.com'
+            user_email = f"{username}@{email_domain}"
+        
+        # Format items for database storage
+        formatted_items = []
+        for item in items:
+            formatted_items.append({
+                'name': item.get('item', item.get('name', 'Unknown Item')),
+                'price': item.get('price', 0),
+                'quantity': 1  # Default quantity
+            })
+        
+        # Add order to database
+        order_success = db_utils.add_order(order_id, username, user_email, total, formatted_items)
+        if not order_success:
+            return jsonify({'error': 'Failed to create order'}), 500
+        
+        # Update user balance
+        new_balance = user_balance - total
+        db_utils.update_balance(username, new_balance)
+        
+        # Prepare order details for email
+        order_details = {
+            'order_id': order_id,
+            'order_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'items': formatted_items,
+            'total': total
+        }
+        
+        # Send email confirmation
+        email_sent = email_utils.send_order_confirmation(user_email, username, order_details)
+        
+        # Mark email as sent if successful
+        if email_sent:
+            db_utils.mark_email_sent(order_id)
+        
+        # Log order completion
+        logging.info(f"Order {order_id} placed successfully for user {username}, total: €{total}, email sent: {email_sent}")
+        
+        return jsonify({
+            'success': True,
+            'order_id': order_id,
+            'new_balance': new_balance,
+            'email_sent': email_sent,
+            'message': f'Order placed successfully! Confirmation email {"sent" if email_sent else "could not be sent"} to {user_email}'
+        })
+        
+    except Exception as e:
+        logging.error(f"Error placing order for user {username}: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/register', methods=['POST'])
 def register():

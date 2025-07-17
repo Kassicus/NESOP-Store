@@ -14,6 +14,19 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 @dataclass
+class EmailConfig:
+    """Email configuration for order delivery"""
+    server: str = "your-exchange-server.yourdomain.com"
+    port: int = 587
+    username: str = "nesop-store@yourdomain.com"
+    password: str = ""
+    use_tls: bool = True
+    from_address: str = "nesop-store@yourdomain.com"
+    from_name: str = "NESOP Store"
+    is_enabled: bool = False
+    timeout: int = 30
+
+@dataclass
 class ADConfig:
     """Active Directory configuration"""
     server_url: str = "ldap://your-dc.yourdomain.com"
@@ -50,6 +63,9 @@ class AppConfig:
     # AD settings
     ad_config: ADConfig = None
     
+    # Email settings
+    email_config: EmailConfig = None
+    
     # Authentication settings
     local_admin_username: str = "fallback_admin"
     local_admin_password: str = "ChangeMe123!"
@@ -63,6 +79,9 @@ class AppConfig:
         
         if self.ad_config is None:
             self.ad_config = ADConfig()
+            
+        if self.email_config is None:
+            self.email_config = EmailConfig()
 
 class ConfigManager:
     """Manages application configuration"""
@@ -111,6 +130,23 @@ class ConfigManager:
             
             self.config.ad_config.is_enabled = os.getenv('AD_ENABLED', 'False').lower() == 'true'
             
+            # Email settings
+            self.config.email_config.server = os.getenv('EMAIL_SERVER', self.config.email_config.server)
+            self.config.email_config.username = os.getenv('EMAIL_USERNAME', self.config.email_config.username)
+            self.config.email_config.password = os.getenv('EMAIL_PASSWORD', self.config.email_config.password)
+            self.config.email_config.from_address = os.getenv('EMAIL_FROM_ADDRESS', self.config.email_config.from_address)
+            self.config.email_config.from_name = os.getenv('EMAIL_FROM_NAME', self.config.email_config.from_name)
+            self.config.email_config.use_tls = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+            self.config.email_config.is_enabled = os.getenv('EMAIL_ENABLED', 'False').lower() == 'true'
+            
+            email_port = os.getenv('EMAIL_PORT')
+            if email_port:
+                self.config.email_config.port = int(email_port)
+            
+            email_timeout = os.getenv('EMAIL_TIMEOUT')
+            if email_timeout:
+                self.config.email_config.timeout = int(email_timeout)
+            
             # Authentication settings
             self.config.local_admin_username = os.getenv('LOCAL_ADMIN_USERNAME', self.config.local_admin_username)
             self.config.local_admin_password = os.getenv('LOCAL_ADMIN_PASSWORD', self.config.local_admin_password)
@@ -142,6 +178,17 @@ class ConfigManager:
                 if not self.config.ad_config.bind_password:
                     logger.warning("AD is enabled but bind password is not set")
             
+            # Validate email configuration if enabled
+            if self.config.email_config.is_enabled:
+                if not self.config.email_config.server or self.config.email_config.server == "your-exchange-server.yourdomain.com":
+                    logger.warning("Email is enabled but server is not configured properly")
+                
+                if not self.config.email_config.password:
+                    logger.warning("Email is enabled but password is not set")
+                
+                if not self.config.email_config.from_address or self.config.email_config.from_address == "nesop-store@yourdomain.com":
+                    logger.warning("Email is enabled but from_address is not configured properly")
+            
             # Validate admin credentials
             if self.config.local_admin_password == "ChangeMe123!":
                 logger.warning("Local admin password is still set to default. Please change it!")
@@ -158,6 +205,10 @@ class ConfigManager:
     def get_ad_config(self) -> ADConfig:
         """Get the AD configuration"""
         return self.config.ad_config
+    
+    def get_email_config(self) -> EmailConfig:
+        """Get the email configuration"""
+        return self.config.email_config
     
     def update_ad_config(self, **kwargs):
         """Update AD configuration"""
@@ -224,6 +275,17 @@ AD_PORT=636
 AD_TIMEOUT=10
 AD_ENABLED=false
 
+# Email Settings
+EMAIL_SERVER=your-exchange-server.yourdomain.com
+EMAIL_PORT=587
+EMAIL_USERNAME=nesop-store@yourdomain.com
+EMAIL_PASSWORD=your-email-password
+EMAIL_FROM_ADDRESS=nesop-store@yourdomain.com
+EMAIL_FROM_NAME=NESOP Store
+EMAIL_USE_TLS=true
+EMAIL_TIMEOUT=30
+EMAIL_ENABLED=false
+
 # Authentication Settings
 LOCAL_ADMIN_USERNAME=fallback_admin
 LOCAL_ADMIN_PASSWORD=ChangeMe123!
@@ -279,6 +341,17 @@ USE_MOCK_AD=false
                 'is_enabled': self.config.ad_config.is_enabled,
                 'bind_password_set': bool(self.config.ad_config.bind_password)
             },
+            'email': {
+                'server': self.config.email_config.server,
+                'port': self.config.email_config.port,
+                'username': self.config.email_config.username,
+                'from_address': self.config.email_config.from_address,
+                'from_name': self.config.email_config.from_name,
+                'use_tls': self.config.email_config.use_tls,
+                'timeout': self.config.email_config.timeout,
+                'is_enabled': self.config.email_config.is_enabled,
+                'password_set': bool(self.config.email_config.password)
+            },
             'auth': {
                 'local_admin_username': self.config.local_admin_username,
                 'local_admin_password_is_default': self.config.local_admin_password == "ChangeMe123!"
@@ -299,6 +372,10 @@ def get_config() -> AppConfig:
 def get_ad_config() -> ADConfig:
     """Get the AD configuration"""
     return config_manager.get_ad_config()
+
+def get_email_config() -> EmailConfig:
+    """Get the email configuration"""
+    return config_manager.get_email_config()
 
 def get_database_path() -> str:
     """Get the database file path"""
