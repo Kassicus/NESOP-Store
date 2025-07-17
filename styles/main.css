@@ -94,8 +94,40 @@ body {
   font-weight: bold;
   cursor: pointer;
   transition: background 0.2s;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .logout-btn:hover {
+  background: #125ea7;
+}
+
+.theme-toggle-btn {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-right: 0.5rem;
+}
+.theme-toggle-btn:hover {
+  background: #125ea7;
+}
+
+/* Theme toggle button for register page (different background) */
+.theme-toggle-btn.register-page {
+  background: #1976d2;
+}
+.theme-toggle-btn.register-page:hover {
   background: #125ea7;
 }
 
@@ -401,6 +433,10 @@ body {
   cursor: pointer;
   transition: background 0.2s;
   margin-right: 0.5rem;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .admin-link:hover {
   background: #125ea7;

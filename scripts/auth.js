@@ -10,21 +10,7 @@ function showLoginForm() {
         type="button" 
         data-theme-toggle 
         aria-label="Change theme"
-        style="
-          background: #1976d2;
-          color: #fff;
-          border: none;
-          border-radius: 4px;
-          padding: 0.6rem;
-          font-weight: bold;
-          cursor: pointer;
-          transition: background 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        "
-        onmouseover="this.style.background='#125ea7'"
-        onmouseout="this.style.background='#1976d2'"
+        class="theme-toggle-btn register-page"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </button>
