@@ -1,7 +1,7 @@
 # NESOP Store - Quick Start Guide
 
 ## Package Information
-- Created: 2025-07-16 10:19:29
+- Created: 2025-07-17 11:45:05
 - Version: 1.0.4
 - Type: Internal Server Deployment with AD Integration
 
@@ -18,9 +18,9 @@
 ### Step 1: Copy to Server
 ```bash
 # Copy this entire folder to your server
-scp -r nesop-store-deployment-20250716_101929/ user@your-server:/tmp/
+scp -r nesop-store-deployment-20250717_114505/ user@your-server:/tmp/
 ssh user@your-server
-cd /tmp/nesop-store-deployment-20250716_101929
+cd /tmp/nesop-store-deployment-20250717_114505
 ```
 
 ### Step 2: Configure
@@ -115,4 +115,4 @@ This will:
 - Regular security updates
 - Run validation after deployment
 
-Generated: 2025-07-16 10:19:29
+Generated: 2025-07-17 11:45:05
