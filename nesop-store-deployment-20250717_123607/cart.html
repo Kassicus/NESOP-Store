@@ -34,6 +34,8 @@
               align-items: center;
               justify-content: center;
               margin-right: 0.5rem;
+              width: 2.2rem;
+              height: 2.2rem;
             "
             onmouseover="this.style.background='#125ea7'"
             onmouseout="this.style.background='rgba(255,255,255,0.18)'"
@@ -156,45 +158,58 @@
       `;
       if (cartLength > 0) {
         document.getElementById('checkout-btn').onclick = function() {
-          // Fetch users from API, update balance, and generate order file
-          fetch('/api/users')
-            .then(res => res.json())
-            .then(data => {
-              const users = data.users || [];
-              const username = getCurrentUser();
-              let balance = getUserBalance(users, username);
-              if (balance < total) {
-                document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Insufficient € for this purchase.</span>';
-                return;
-              }
-              // Deduct balance
-              balance -= total;
-              setUserBalance(users, username, balance);
-              // Generate order text
-              const now = new Date();
-              const orderText = `Order for: ${username}\nDate: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n${getCart().map(i => `- ${i.item} (€ ${i.price})`).join('\n')}\n\nTotal: € ${total}\n`;
-              // Download order file
+          // Prepare order data
+          const username = getCurrentUser();
+          const cart = getCart();
+          const now = new Date();
+          
+          const orderData = {
+            username: username,
+            items: cart,
+            total: total,
+            order_date: now.toLocaleDateString(),
+            order_time: now.toLocaleTimeString()
+          };
+          
+          // Show loading message
+          document.getElementById('checkout-message').innerHTML = '<span style="color:blue;">Processing order...</span>';
+          
+          // Place order via new API endpoint
+          fetch('/api/place-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              // Generate and download order file
+              const orderText = `Order for: ${username}\nDate: ${orderData.order_date}\nTime: ${orderData.order_time}\n\nItems:\n${cart.map(i => `- ${i.item} (€ ${i.price})`).join('\n')}\n\nTotal: € ${total}\n`;
               downloadOrderFile(orderText, username);
-              // Persist balance to backend
-              fetch('/api/update-balance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, newBalance: balance })
-              })
-              .then(res => res.json())
-              .then(data => {
-                if (data.success) {
-                  setCart([]);
-                  renderCart();
-                  document.getElementById('checkout-message').innerHTML = '<span style="color:green;">Order placed! Your order file has been downloaded and your balance updated.</span>';
+              
+              // Clear cart and refresh
+              setCart([]);
+              renderCart();
+              
+              // Show success message with email notification status
+              let message = '<span style="color:green;">Order placed successfully! Your order file has been downloaded and your balance updated.</span>';
+              if (data.email_notification) {
+                if (data.email_notification.success) {
+                  message += '<br><span style="color:green;">📧 Email notification sent to store team.</span>';
                 } else {
-                  document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Order placed, but failed to update balance on server.</span>';
+                  message += '<br><span style="color:orange;">⚠️ Email notification failed (order still processed).</span>';
                 }
-              })
-              .catch(() => {
-                document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Order placed, but failed to update balance on server.</span>';
-              });
-            });
+              }
+              document.getElementById('checkout-message').innerHTML = message;
+              
+            } else {
+              document.getElementById('checkout-message').innerHTML = `<span style="color:red;">Order failed: ${data.error || 'Unknown error'}</span>`;
+            }
+          })
+          .catch(error => {
+            console.error('Order placement error:', error);
+            document.getElementById('checkout-message').innerHTML = '<span style="color:red;">Order placement failed. Please try again.</span>';
+          });
         };
       }
     }

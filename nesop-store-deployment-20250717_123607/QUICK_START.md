@@ -1,8 +1,8 @@
 # NESOP Store - Quick Start Guide
 
 ## Package Information
-- Created: 2025-07-17 11:45:05
-- Version: 1.0.4
+- Created: 2025-07-17 12:36:07
+- Version: 1.0.5
 - Type: Internal Server Deployment with AD Integration
 
 ## What's Included
@@ -18,9 +18,9 @@
 ### Step 1: Copy to Server
 ```bash
 # Copy this entire folder to your server
-scp -r nesop-store-deployment-20250717_114505/ user@your-server:/tmp/
+scp -r nesop-store-deployment-20250717_123607/ user@your-server:/tmp/
 ssh user@your-server
-cd /tmp/nesop-store-deployment-20250717_114505
+cd /tmp/nesop-store-deployment-20250717_123607
 ```
 
 ### Step 2: Configure
@@ -39,6 +39,9 @@ python3 deploy_config.py
 # Run automated deployment
 chmod +x deploy.sh
 sudo ./deploy.sh
+
+# If you have existing users, run migration to fix duplicates
+python3 migrate_username_normalization.py
 ```
 
 ## After Deployment
@@ -65,6 +68,7 @@ sudo ./deploy.sh
 - `deploy_config.py` - Deployment configuration wizard
 - `validate_deployment.py` - Deployment validation and testing
 - `migrate_ad_integration.py` - AD integration database migration
+- `migrate_username_normalization.py` - Username normalization and duplicate user merger
 - `migrate_items_to_sqlite.py` - Item data migration utility
 - `uninstall_nesop_store.sh` - Complete application uninstall script
 - `AD_CONFIGURATION_TEMPLATE.md` - AD setup guide
@@ -96,7 +100,7 @@ This will:
 - Optionally remove the system user
 - Provide verification of cleanup
 
-## Recent Improvements (v1.0.4)
+## Recent Improvements (v1.0.5)
 - Fixed database path synchronization in migration scripts
 - Added table existence checking for robust deployment
 - Enhanced error handling for fresh deployments
@@ -107,6 +111,8 @@ This will:
 - Fixed DN pattern duplication bug in AD authentication
 - Hidden AD user search panel when using simple bind mode
 - Fixed username display to show clean username instead of email address
+- Added username normalization to prevent duplicate users with different formats
+- Created migration script to merge existing duplicate user accounts
 
 ## Security Notes
 - Deploy on internal network only
@@ -115,4 +121,4 @@ This will:
 - Regular security updates
 - Run validation after deployment
 
-Generated: 2025-07-17 11:45:05
+Generated: 2025-07-17 12:36:07

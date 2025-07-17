@@ -33,6 +33,24 @@ class ADConfig:
     admin_group: str = ""  # Optional: Leave empty to manage admin permissions locally
 
 @dataclass
+class EmailConfig:
+    """Email notification configuration"""
+    enabled: bool = False
+    smtp_server: str = "your-exchange-server.yourdomain.com"
+    smtp_port: int = 587
+    use_tls: bool = True
+    use_ssl: bool = False
+    username: str = "nesop-store@yourdomain.com"
+    password: str = ""
+    from_email: str = "nesop-store@yourdomain.com"
+    from_name: str = "NESOP Store"
+    to_email: str = "store-team@yourdomain.com"
+    to_name: str = "Store Team"
+    subject_prefix: str = "[NESOP Store]"
+    timeout: int = 10
+    test_mode: bool = False
+
+@dataclass
 class AppConfig:
     """Application configuration"""
     # Flask settings
@@ -50,6 +68,9 @@ class AppConfig:
     # AD settings
     ad_config: ADConfig = None
     
+    # Email settings
+    email_config: EmailConfig = None
+    
     # Authentication settings
     local_admin_username: str = "fallback_admin"
     local_admin_password: str = "ChangeMe123!"
@@ -63,6 +84,9 @@ class AppConfig:
         
         if self.ad_config is None:
             self.ad_config = ADConfig()
+        
+        if self.email_config is None:
+            self.email_config = EmailConfig()
 
 class ConfigManager:
     """Manages application configuration"""
@@ -118,6 +142,22 @@ class ConfigManager:
             # Mock mode
             self.config.use_mock_ad = os.getenv('USE_MOCK_AD', 'False').lower() == 'true'
             
+            # Email settings
+            self.config.email_config.enabled = os.getenv('EMAIL_ENABLED', 'False').lower() == 'true'
+            self.config.email_config.smtp_server = os.getenv('EMAIL_SMTP_SERVER', self.config.email_config.smtp_server)
+            self.config.email_config.smtp_port = int(os.getenv('EMAIL_SMTP_PORT', str(self.config.email_config.smtp_port)))
+            self.config.email_config.use_tls = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+            self.config.email_config.use_ssl = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+            self.config.email_config.username = os.getenv('EMAIL_USERNAME', self.config.email_config.username)
+            self.config.email_config.password = os.getenv('EMAIL_PASSWORD', self.config.email_config.password)
+            self.config.email_config.from_email = os.getenv('EMAIL_FROM_EMAIL', self.config.email_config.from_email)
+            self.config.email_config.from_name = os.getenv('EMAIL_FROM_NAME', self.config.email_config.from_name)
+            self.config.email_config.to_email = os.getenv('EMAIL_TO_EMAIL', self.config.email_config.to_email)
+            self.config.email_config.to_name = os.getenv('EMAIL_TO_NAME', self.config.email_config.to_name)
+            self.config.email_config.subject_prefix = os.getenv('EMAIL_SUBJECT_PREFIX', self.config.email_config.subject_prefix)
+            self.config.email_config.timeout = int(os.getenv('EMAIL_TIMEOUT', str(self.config.email_config.timeout)))
+            self.config.email_config.test_mode = os.getenv('EMAIL_TEST_MODE', 'False').lower() == 'true'
+            
             logger.info("Configuration loaded from environment variables")
             
         except Exception as e:
@@ -145,6 +185,20 @@ class ConfigManager:
             # Validate admin credentials
             if self.config.local_admin_password == "ChangeMe123!":
                 logger.warning("Local admin password is still set to default. Please change it!")
+            
+            # Validate email configuration if enabled
+            if self.config.email_config.enabled:
+                if not self.config.email_config.smtp_server or self.config.email_config.smtp_server == "your-exchange-server.yourdomain.com":
+                    logger.warning("Email is enabled but SMTP server is not configured properly")
+                
+                if not self.config.email_config.from_email or self.config.email_config.from_email == "nesop-store@yourdomain.com":
+                    logger.warning("Email is enabled but from_email is not configured properly")
+                
+                if not self.config.email_config.to_email or self.config.email_config.to_email == "store-team@yourdomain.com":
+                    logger.warning("Email is enabled but to_email is not configured properly")
+                
+                if self.config.email_config.username and not self.config.email_config.password:
+                    logger.warning("Email username is set but password is empty")
             
             logger.info("Configuration validation completed")
             
@@ -177,6 +231,24 @@ class ConfigManager:
         """Enable or disable mock mode"""
         self.config.use_mock_ad = enabled
         logger.info(f"Mock AD mode {'enabled' if enabled else 'disabled'}")
+    
+    def get_email_config(self) -> EmailConfig:
+        """Get the email configuration"""
+        return self.config.email_config
+    
+    def update_email_config(self, **kwargs):
+        """Update email configuration"""
+        for key, value in kwargs.items():
+            if hasattr(self.config.email_config, key):
+                setattr(self.config.email_config, key, value)
+                logger.info(f"Updated email config: {key} = {value}")
+            else:
+                logger.warning(f"Unknown email config key: {key}")
+    
+    def enable_email_notifications(self, enabled: bool = True):
+        """Enable or disable email notifications"""
+        self.config.email_config.enabled = enabled
+        logger.info(f"Email notifications {'enabled' if enabled else 'disabled'}")
     
     def get_database_path(self) -> str:
         """Get the database file path"""
@@ -223,6 +295,22 @@ AD_USE_SSL=true
 AD_PORT=636
 AD_TIMEOUT=10
 AD_ENABLED=false
+
+# Email Notification Settings
+EMAIL_ENABLED=false
+EMAIL_SMTP_SERVER=your-exchange-server.yourdomain.com
+EMAIL_SMTP_PORT=587
+EMAIL_USE_TLS=true
+EMAIL_USE_SSL=false
+EMAIL_USERNAME=nesop-store@yourdomain.com
+EMAIL_PASSWORD=your-email-password
+EMAIL_FROM_EMAIL=nesop-store@yourdomain.com
+EMAIL_FROM_NAME=NESOP Store
+EMAIL_TO_EMAIL=store-team@yourdomain.com
+EMAIL_TO_NAME=Store Team
+EMAIL_SUBJECT_PREFIX=[NESOP Store]
+EMAIL_TIMEOUT=10
+EMAIL_TEST_MODE=false
 
 # Authentication Settings
 LOCAL_ADMIN_USERNAME=fallback_admin
@@ -278,6 +366,17 @@ USE_MOCK_AD=false
                 'timeout': self.config.ad_config.timeout,
                 'is_enabled': self.config.ad_config.is_enabled,
                 'bind_password_set': bool(self.config.ad_config.bind_password)
+            },
+            'email': {
+                'enabled': self.config.email_config.enabled,
+                'smtp_server': self.config.email_config.smtp_server,
+                'smtp_port': self.config.email_config.smtp_port,
+                'use_tls': self.config.email_config.use_tls,
+                'use_ssl': self.config.email_config.use_ssl,
+                'from_email': self.config.email_config.from_email,
+                'to_email': self.config.email_config.to_email,
+                'test_mode': self.config.email_config.test_mode,
+                'password_set': bool(self.config.email_config.password)
             },
             'auth': {
                 'local_admin_username': self.config.local_admin_username,

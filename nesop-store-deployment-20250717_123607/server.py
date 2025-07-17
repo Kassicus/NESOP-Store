@@ -6,11 +6,148 @@ import os
 from pathlib import Path
 import ad_utils
 import config
+import email_utils
 
+# Initialize Flask app
 app = Flask(__name__, static_folder='.')
+
+def setup_local_development():
+    """Setup for local development - ensures database exists and configuration is valid"""
+    try:
+        # Ensure database exists and is properly initialized
+        if not os.path.exists('nesop_store.db'):
+            logging.info("Database not found, initializing for local development...")
+            init_local_database()
+        
+        # Test database connection
+        try:
+            conn = db_utils.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM users")
+            conn.close()
+            logging.info("Database connection verified")
+        except Exception as e:
+            logging.error(f"Database connection failed: {e}")
+            init_local_database()
+        
+        # Ensure upload directory exists
+        upload_dir = os.path.join(os.path.dirname(__file__), 'assets', 'images')
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir, exist_ok=True)
+            logging.info(f"Created upload directory: {upload_dir}")
+        
+        logging.info("Local development setup completed successfully")
+        
+    except Exception as e:
+        logging.error(f"Local development setup failed: {e}")
+        raise
+
+def init_local_database():
+    """Initialize local database with required tables and fallback admin user"""
+    try:
+        conn = db_utils.get_db_connection()
+        cursor = conn.cursor()
+        
+        # Create users table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT NOT NULL,
+            balance INTEGER DEFAULT 0,
+            is_admin INTEGER DEFAULT 0,
+            user_type TEXT DEFAULT 'local',
+            ad_username TEXT,
+            ad_domain TEXT,
+            ad_display_name TEXT,
+            ad_email TEXT,
+            last_ad_sync TIMESTAMP,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Create items table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS items (
+            item TEXT PRIMARY KEY,
+            description TEXT,
+            price REAL,
+            image TEXT,
+            sold_out INTEGER DEFAULT 0,
+            unlisted INTEGER DEFAULT 0
+        )''')
+        
+        # Create purchases table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS purchases (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            item TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            total_price REAL NOT NULL,
+            purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (username) REFERENCES users(username),
+            FOREIGN KEY (item) REFERENCES items(item)
+        )''')
+        
+        # Create reviews table
+        cursor.execute('''CREATE TABLE IF NOT EXISTS reviews (
+            review_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item TEXT NOT NULL,
+            username TEXT,
+            rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            review_text TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        
+        # Create fallback admin user if not exists
+        cursor.execute('''INSERT OR IGNORE INTO users (username, password, balance, is_admin, user_type) 
+                          VALUES ('fallback_admin', 'ChangeMe123!', 1000, 1, 'local')''')
+        
+        # Create a test user for local development
+        cursor.execute('''INSERT OR IGNORE INTO users (username, password, balance, is_admin, user_type) 
+                          VALUES ('test_user', 'test123', 100, 0, 'local')''')
+        
+        conn.commit()
+        conn.close()
+        logging.info("Local database initialized successfully")
+        
+    except Exception as e:
+        logging.error(f"Failed to initialize local database: {e}")
+        raise
+
+# Setup for local development
+setup_local_development()
+
+# Set environment variables for local development if not already set
+if not os.getenv('AD_ENABLED'):
+    os.environ['AD_ENABLED'] = 'False'
+if not os.getenv('EMAIL_ENABLED'):
+    os.environ['EMAIL_ENABLED'] = 'False'
+if not os.getenv('USE_MOCK_AD'):
+    os.environ['USE_MOCK_AD'] = 'True'
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
+def print_local_development_info():
+    """Print helpful information for local development"""
+    try:
+        print("\n" + "="*50)
+        print("NESOP Store - Local Development")
+        print("="*50)
+        print(f"Server running on: http://127.0.0.1:8001")
+        print(f"Database: {os.path.abspath('nesop_store.db')}")
+        print(f"Upload folder: {os.path.abspath('assets/images')}")
+        print("\nDefault accounts:")
+        print("- Admin: fallback_admin / ChangeMe123!")
+        print("- Test User: test_user / test123")
+        print("\nAD Integration: Disabled (local development)")
+        print("Email Notifications: Disabled (local development)")
+        print("="*50)
+        print()
+    except Exception as e:
+        logging.error(f"Error printing development info: {e}")
+
+# Print development info
+print_local_development_info()
 
 # Get absolute path for upload folder
 UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'assets', 'images'))
@@ -44,6 +181,96 @@ def update_balance():
     logging.info(f"Balance updated for user {username} to {new_balance}")
     return jsonify({'success': True})
 
+@app.route('/api/place-order', methods=['POST'])
+def place_order():
+    """
+    Place order endpoint with email notifications
+    Handles order processing, balance updates, and email notifications
+    """
+    data = request.get_json()
+    
+    # Extract order data
+    username = data.get('username')
+    items = data.get('items', [])
+    total = data.get('total', 0)
+    order_date = data.get('order_date')
+    order_time = data.get('order_time')
+    
+    # Validate required fields
+    if not username or not items or not isinstance(total, (int, float)):
+        logging.warning(f"Invalid place-order request: {data}")
+        return jsonify({'error': 'Invalid request - missing required fields'}), 400
+    
+    # Check if user exists
+    user = db_utils.get_user(username)
+    if not user:
+        logging.warning(f"User not found for order: {username}")
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Check if user has sufficient balance
+    current_balance = float(user[2])  # Balance is the 3rd field
+    if current_balance < total:
+        logging.warning(f"Insufficient balance for order: {username}, balance: {current_balance}, total: {total}")
+        return jsonify({'error': 'Insufficient balance'}), 400
+    
+    # Calculate new balance
+    new_balance = current_balance - total
+    
+    try:
+        # Update user balance
+        db_utils.update_balance(username, new_balance)
+        logging.info(f"Order processed - Balance updated for user {username}: {current_balance} -> {new_balance}")
+        
+        # Prepare order data for email notification
+        order_data = {
+            'username': username,
+            'items': [{'name': item.get('item', ''), 'price': float(item.get('price', 0))} for item in items],
+            'total': total,
+            'new_balance': new_balance,
+            'order_date': order_date or datetime.now().strftime('%Y-%m-%d'),
+            'order_time': order_time or datetime.now().strftime('%H:%M:%S')
+        }
+        
+        # Send email notification
+        email_success = False
+        email_message = ""
+        
+        try:
+            email_success, email_message = email_utils.send_order_notification(order_data)
+            if email_success:
+                logging.info(f"Order notification email sent successfully for user {username}")
+            else:
+                logging.warning(f"Failed to send order notification email for user {username}: {email_message}")
+        except Exception as e:
+            logging.error(f"Error sending order notification email for user {username}: {str(e)}")
+            email_message = f"Email notification error: {str(e)}"
+        
+        # Log order details
+        order_summary = f"Order placed by {username} - Total: €{total:.2f} - Items: {len(items)}"
+        logging.info(order_summary)
+        
+        # Return success response
+        response = {
+            'success': True,
+            'message': 'Order placed successfully',
+            'order_data': {
+                'username': username,
+                'total': total,
+                'new_balance': new_balance,
+                'items_count': len(items)
+            },
+            'email_notification': {
+                'success': email_success,
+                'message': email_message
+            }
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logging.error(f"Error processing order for user {username}: {str(e)}")
+        return jsonify({'error': 'Order processing failed', 'details': str(e)}), 500
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -73,11 +300,44 @@ def check_admin():
     is_admin = db_utils.is_admin(username)
     return jsonify({'is_admin': is_admin})
 
+# Rate limiting for login attempts
+failed_attempts = {}
+import time
+
+def check_rate_limit(username, max_attempts=3, window_seconds=300):
+    """
+    Check if user has exceeded rate limit
+    Returns True if rate limit exceeded, False otherwise
+    """
+    now = time.time()
+    
+    if username not in failed_attempts:
+        failed_attempts[username] = []
+    
+    # Clean old attempts
+    failed_attempts[username] = [
+        attempt_time for attempt_time in failed_attempts[username]
+        if now - attempt_time < window_seconds
+    ]
+    
+    # Check if limit exceeded
+    if len(failed_attempts[username]) >= max_attempts:
+        return True
+    
+    return False
+
+def record_failed_attempt(username):
+    """Record a failed login attempt"""
+    if username not in failed_attempts:
+        failed_attempts[username] = []
+    
+    failed_attempts[username].append(time.time())
+
 @app.route('/api/login', methods=['POST'])
 def login():
     """
-    Dual authentication endpoint that supports both AD and local users.
-    Priority: AD authentication first, then local fallback.
+    FIXED: Single authentication endpoint that prevents AD account lockouts.
+    No longer uses dual authentication fallback to prevent double attempts.
     """
     data = request.get_json()
     username = data.get('username', '').strip()
@@ -86,44 +346,43 @@ def login():
     if not username or not password:
         return jsonify({'error': 'Username and password required.'}), 400
     
+    # CRITICAL FIX: Normalize username ONCE at the beginning
+    normalized_username = ad_utils.ActiveDirectoryManager.normalize_username(username)
+    
+    # CRITICAL FIX: Check rate limit to prevent rapid attempts
+    if check_rate_limit(normalized_username):
+        logging.warning(f"Rate limit exceeded for user: {normalized_username} (original: {username})")
+        return jsonify({'error': 'Too many failed attempts. Please try again later.'}), 429
+    
     # Initialize AD manager
     try:
         ad_manager = ad_utils.ActiveDirectoryManager()
-        logging.info(f"Login attempt for user: {username}")
+        logging.info(f"Login attempt for user: {username} (normalized: {normalized_username})")
         
-        # Step 1: Try AD authentication first (if AD is enabled)
+        # Check if AD is enabled
         if ad_manager.app_config.ad_config.is_enabled:
+            # CRITICAL FIX: Only try AD authentication - NO fallback to local auth
             try:
-                ad_auth_result = ad_manager.authenticate_user(username, password)
-                if ad_auth_result[0]:  # Check if authentication was successful
-                    logging.info(f"AD authentication successful for user: {username}")
+                ad_auth_result = ad_manager.authenticate_user(normalized_username, password)
+                
+                if ad_auth_result[0]:  # AD authentication successful
+                    logging.info(f"AD authentication successful for user: {normalized_username}")
                     
-                    # Get AD user details from authentication result
+                    # Handle user import/sync
                     ad_user = ad_auth_result[1]
                     if ad_user:
-                        # Normalize username for database operations to prevent duplicates
-                        normalized_username = ad_utils.ActiveDirectoryManager.normalize_username(
-                            username, ad_manager.app_config.ad_config.domain
-                        )
-                        
-                        # Check if user exists in local database using normalized username
                         local_user = db_utils.get_user(normalized_username)
                         
                         if not local_user:
-                            # Import AD user to local database
+                            # Import new AD user
                             logging.info(f"Importing new AD user to local database: {username} (normalized: {normalized_username})")
-                            # New AD users are imported as regular users (not admin)
-                            # Admin status can be granted later through the admin panel
-                            is_admin = False
-                            
-                            # Create user in local database using normalized username
                             db_utils.add_ad_user(
                                 username=normalized_username,
                                 ad_username=ad_user.get('sAMAccountName', username),
                                 ad_domain=ad_user.get('domain', ''),
                                 ad_display_name=ad_user.get('displayName', username),
                                 ad_email=ad_user.get('mail', ''),
-                                is_admin=is_admin
+                                is_admin=False  # New users are not admin by default
                             )
                             
                             # Log the import
@@ -131,7 +390,7 @@ def login():
                                 normalized_username, 
                                 'user_import', 
                                 f'AD user imported to local database (original: {username}, normalized: {normalized_username})',
-                                {'is_admin': is_admin, 'original_username': username}
+                                {'is_admin': False, 'original_username': username}
                             )
                         else:
                             # Update existing user's AD sync timestamp
@@ -156,60 +415,57 @@ def login():
                             },
                             'auth_method': 'ad'
                         })
-                        
+                else:
+                    # CRITICAL FIX: AD authentication failed - do NOT try local auth
+                    logging.warning(f"AD authentication failed for user: {normalized_username} (original: {username})")
+                    record_failed_attempt(normalized_username)
+                    ad_manager.log_audit_event(
+                        normalized_username, 
+                        'login_failed', 
+                        f'AD authentication failed (original: {username}, normalized: {normalized_username})'
+                    )
+                    return jsonify({'error': 'Invalid username or password.'}), 401
+                    
             except Exception as e:
-                logging.warning(f"AD authentication failed for {username}: {str(e)}")
-                # Continue to local authentication fallback
-        
-        # Step 2: Local database authentication fallback
-        logging.info(f"Attempting local authentication for user: {username}")
-        
-        # For local authentication, also try normalized username to handle existing users
-        normalized_username = ad_utils.ActiveDirectoryManager.normalize_username(username)
-        local_user = db_utils.get_user(username)
-        
-        # If no exact match, try normalized username
-        if not local_user:
-            local_user = db_utils.get_user(normalized_username)
-            if local_user:
-                logging.info(f"Found user with normalized username: {normalized_username}")
-        
-        if local_user and local_user[1] == password:  # Check password
-            logging.info(f"Local authentication successful for user: {username}")
-            
-            # Log the login for local users
-            if ad_manager.app_config.ad_config.is_enabled:
+                logging.error(f"AD authentication error for {normalized_username}: {str(e)}")
+                record_failed_attempt(normalized_username)
                 ad_manager.log_audit_event(
-                    local_user[0], 
-                    'login_success', 
-                    'Local user logged in successfully'
+                    normalized_username, 
+                    'authentication_error', 
+                    f'AD authentication error: {str(e)}'
                 )
+                return jsonify({'error': 'Authentication service unavailable.'}), 503
+        else:
+            # AD is disabled - only allow local authentication
+            logging.info(f"AD disabled - attempting local authentication for user: {normalized_username}")
             
-            return jsonify({
-                'success': True,
-                'user': {
-                    'username': local_user[0],
-                    'is_admin': bool(local_user[3]),
-                    'user_type': local_user[4] or 'local',
-                    'display_name': local_user[7] or username
-                },
-                'auth_method': 'local'
-            })
-        
-        # Step 3: Authentication failed
-        logging.warning(f"Authentication failed for user: {username}")
-        if ad_manager.app_config.ad_config.is_enabled:
-            ad_manager.log_audit_event(
-                username, 
-                'login_failed', 
-                'Authentication failed for user'
-            )
-        
-        return jsonify({'error': 'Invalid username or password.'}), 401
+            # Try both original and normalized username for local auth
+            local_user = db_utils.get_user(username)
+            if not local_user:
+                local_user = db_utils.get_user(normalized_username)
+                if local_user:
+                    logging.info(f"Found user with normalized username: {normalized_username}")
+            
+            if local_user and local_user[1] == password:
+                logging.info(f"Local authentication successful for user: {normalized_username}")
+                return jsonify({
+                    'success': True,
+                    'user': {
+                        'username': local_user[0],
+                        'is_admin': bool(local_user[3]),
+                        'user_type': local_user[4] or 'local',
+                        'display_name': local_user[7] or username
+                    },
+                    'auth_method': 'local'
+                })
+            else:
+                logging.warning(f"Local authentication failed for user: {normalized_username}")
+                record_failed_attempt(normalized_username)
+                return jsonify({'error': 'Invalid username or password.'}), 401
         
     except Exception as e:
         logging.error(f"Login error for user {username}: {str(e)}")
-        return jsonify({'error': 'Authentication system error.'}), 500
+        return jsonify({'error': 'Internal server error.'}), 500
 
 # --- AD User Management (Admin) ---
 @app.route('/api/ad-users/search', methods=['POST'])
@@ -601,6 +857,45 @@ def delete_item():
     db_utils.delete_item(item)
     logging.info(f"Admin deleted item: {item}")
     return jsonify({'success': True})
+
+@app.route('/api/email/status', methods=['GET'])
+def email_status():
+    """Get email configuration status"""
+    try:
+        status = email_utils.email_manager.get_email_status()
+        return jsonify({
+            'success': True,
+            'email_config': status
+        })
+    except Exception as e:
+        logging.error(f"Error getting email status: {str(e)}")
+        return jsonify({'error': 'Failed to get email status', 'details': str(e)}), 500
+
+@app.route('/api/email/test-connection', methods=['POST'])
+def test_email_connection():
+    """Test email server connection"""
+    try:
+        success, message = email_utils.test_email_connection()
+        return jsonify({
+            'success': success,
+            'message': message
+        })
+    except Exception as e:
+        logging.error(f"Error testing email connection: {str(e)}")
+        return jsonify({'error': 'Failed to test email connection', 'details': str(e)}), 500
+
+@app.route('/api/email/send-test', methods=['POST'])
+def send_test_email():
+    """Send test email"""
+    try:
+        success, message = email_utils.send_test_email()
+        return jsonify({
+            'success': success,
+            'message': message
+        })
+    except Exception as e:
+        logging.error(f"Error sending test email: {str(e)}")
+        return jsonify({'error': 'Failed to send test email', 'details': str(e)}), 500
 
 @app.route('/api/product/<item>', methods=['GET'])
 def get_product(item):

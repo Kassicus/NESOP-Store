@@ -22,6 +22,8 @@ function showLoginForm() {
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 2.2rem;
+          height: 2.2rem;
         "
         onmouseover="this.style.background='#125ea7'"
         onmouseout="this.style.background='#1976d2'"
@@ -37,9 +39,9 @@ function showLoginForm() {
         <button type="submit" class="login-btn" style="margin-bottom:0.7em;width:85%;">Login</button>
         <div id="login-error" style="color:red;margin-top:8px;text-align:center;"></div>
       </form>
-      <div style="text-align:center;margin-top:1.5em;">
+      <!-- <div style="text-align:center;margin-top:1.5em;">
         <a href="register.html" style="color:#1976d2;text-decoration:none;font-size:1.05em;">Register Here</a>
-      </div>
+      </div> -->
     </div>
   `;
   document.getElementById('login-form').onsubmit = function(e) {

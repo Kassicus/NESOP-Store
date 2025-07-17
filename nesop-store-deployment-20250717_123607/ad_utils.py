@@ -201,23 +201,25 @@ class ActiveDirectoryManager:
                 logger.warning("AD integration is disabled")
                 return False
             
-            # Create server object
+            # Create server object with enhanced timeouts
             server = ldap3.Server(
                 self.config['server_url'],
                 port=self.config['port'],
                 use_ssl=self.config['use_ssl'],
                 get_info=ldap3.ALL,
-                connect_timeout=self.config['timeout']
+                connect_timeout=self.config['timeout'],
+                receive_timeout=self.config['timeout']
             )
             
-            # Create connection
+            # Create connection with enhanced security
             self.connection = ldap3.Connection(
                 server,
                 user=self.config['bind_dn'],
                 password=self.config['bind_password'],
                 authentication=ldap3.SIMPLE,
                 auto_bind=True,
-                auto_referrals=False
+                auto_referrals=False,  # Prevent automatic referral following
+                read_only=True  # Read-only connection for security
             )
             
             logger.info(f"Successfully connected to AD server: {self.config['server_url']}")
@@ -259,12 +261,14 @@ class ActiveDirectoryManager:
             
             logger.info(f"Using DN for authentication: {user_dn}")
             
-            # Create server connection
+            # Create server connection with timeouts
             server = ldap3.Server(
                 self.app_config.ad_config.server_url,
                 port=self.app_config.ad_config.port,
                 use_ssl=self.app_config.ad_config.use_ssl,
-                get_info=ldap3.ALL
+                get_info=ldap3.ALL,
+                connect_timeout=5,  # 5 second connection timeout
+                receive_timeout=5   # 5 second receive timeout
             )
             
             # Attempt direct bind with user credentials
@@ -273,57 +277,88 @@ class ActiveDirectoryManager:
                 user=user_dn,
                 password=password,
                 authentication=ldap3.SIMPLE,
-                auto_bind=False
+                auto_bind=False,
+                auto_referrals=False,  # Prevent automatic referral following
+                read_only=True  # Read-only connection for security
             )
             
-            if connection.bind():
-                logger.info(f"Simple bind successful for user: {username}")
+            # Attempt authentication with proper error handling
+            try:
+                bind_result = connection.bind()
                 
-                # Create basic user info
-                user_info = {
-                    'sAMAccountName': username,
-                    'displayName': username,  # We don't have full info in simple bind
-                    'mail': f"{username}@{self.app_config.ad_config.domain}",
-                    'dn': user_dn,
-                    'userPrincipalName': f"{username}@{self.app_config.ad_config.domain}",
-                    'memberOf': [],  # Can't easily get group memberships in simple bind
-                    'enabled': True
-                }
-                
-                # Try to get additional user info if possible
-                try:
-                    # Search for user info using the authenticated connection
-                    base_dn = self.app_config.ad_config.user_base_dn
-                    search_filter = f"(sAMAccountName={username})"
+                if bind_result:
+                    logger.info(f"Simple bind successful for user: {username}")
                     
-                    if connection.search(base_dn, search_filter, attributes=['displayName', 'mail', 'memberOf']):
-                        if connection.entries:
-                            entry = connection.entries[0]
-                            user_info.update({
-                                'displayName': str(entry.displayName) if entry.displayName else username,
-                                'mail': str(entry.mail) if entry.mail else user_info['mail'],
-                                'memberOf': [str(group) for group in entry.memberOf] if entry.memberOf else []
-                            })
-                            logger.info(f"Retrieved additional user info for: {username}")
-                except Exception as e:
-                    logger.warning(f"Could not retrieve additional user info for {username}: {e}")
-                
-                db_utils.log_ad_event(
-                    username=username,
-                    action='simple_bind_success',
-                    details=f'Simple bind successful for user: {username}'
-                )
-                
-                connection.unbind()
-                return True, user_info
-            else:
-                logger.warning(f"Simple bind failed for user: {username}")
+                    # Create basic user info
+                    user_info = {
+                        'sAMAccountName': username,
+                        'displayName': username,  # We don't have full info in simple bind
+                        'mail': f"{username}@{self.app_config.ad_config.domain}",
+                        'dn': user_dn,
+                        'userPrincipalName': f"{username}@{self.app_config.ad_config.domain}",
+                        'memberOf': [],  # Can't easily get group memberships in simple bind
+                        'enabled': True
+                    }
+                    
+                    # Try to get additional user info if possible
+                    try:
+                        # Search for user info using the authenticated connection
+                        base_dn = self.app_config.ad_config.user_base_dn
+                        search_filter = f"(sAMAccountName={username})"
+                        
+                        if connection.search(base_dn, search_filter, attributes=['displayName', 'mail', 'memberOf']):
+                            if connection.entries:
+                                entry = connection.entries[0]
+                                user_info.update({
+                                    'displayName': str(entry.displayName) if entry.displayName else username,
+                                    'mail': str(entry.mail) if entry.mail else user_info['mail'],
+                                    'memberOf': [str(group) for group in entry.memberOf] if entry.memberOf else []
+                                })
+                                logger.info(f"Retrieved additional user info for: {username}")
+                    except Exception as e:
+                        logger.warning(f"Could not retrieve additional user info for {username}: {e}")
+                    
+                    db_utils.log_ad_event(
+                        username=username,
+                        action='simple_bind_success',
+                        details=f'Simple bind successful for user: {username}'
+                    )
+                    
+                    connection.unbind()
+                    return True, user_info
+                else:
+                    # Authentication failed - get specific error details
+                    error_msg = connection.result.get('description', 'Invalid credentials')
+                    logger.warning(f"Simple bind failed for user: {username} - {error_msg}")
+                    db_utils.log_ad_event(
+                        username=username,
+                        action='simple_bind_failed',
+                        details=f'Simple bind failed for user: {username}',
+                        success=False,
+                        error_message=error_msg
+                    )
+                    connection.unbind()
+                    return False, None
+                    
+            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                logger.warning(f"Simple bind failed - invalid credentials for user: {username}")
                 db_utils.log_ad_event(
                     username=username,
                     action='simple_bind_failed',
-                    details=f'Simple bind failed for user: {username}',
+                    details=f'Simple bind failed - invalid credentials for user: {username}',
                     success=False,
                     error_message='Invalid credentials'
+                )
+                connection.unbind()
+                return False, None
+            except ldap3.core.exceptions.LDAPException as e:
+                logger.error(f"LDAP error during simple bind for user {username}: {str(e)}")
+                db_utils.log_ad_event(
+                    username=username,
+                    action='simple_bind_error',
+                    details=f'LDAP error during simple bind: {str(e)}',
+                    success=False,
+                    error_message=str(e)
                 )
                 connection.unbind()
                 return False, None
@@ -407,26 +442,57 @@ class ActiveDirectoryManager:
                 user=user_dn,
                 password=password,
                 authentication=ldap3.SIMPLE,
-                auto_bind=False
+                auto_bind=False,
+                auto_referrals=False,  # Prevent automatic referral following
+                read_only=True  # Read-only connection for security
             )
             
-            if auth_connection.bind():
-                logger.info(f"Successfully authenticated user: {username}")
-                db_utils.log_ad_event(
-                    username=username,
-                    action='authentication_success',
-                    details=f'Successfully authenticated user: {username}'
-                )
-                auth_connection.unbind()
-                return True, user_info
-            else:
-                logger.warning(f"Authentication failed for user: {username}")
+            # Attempt authentication with proper error handling
+            try:
+                bind_result = auth_connection.bind()
+                
+                if bind_result:
+                    logger.info(f"Successfully authenticated user: {username}")
+                    db_utils.log_ad_event(
+                        username=username,
+                        action='authentication_success',
+                        details=f'Successfully authenticated user: {username}'
+                    )
+                    auth_connection.unbind()
+                    return True, user_info
+                else:
+                    # Authentication failed - get specific error details
+                    error_msg = auth_connection.result.get('description', 'Invalid credentials')
+                    logger.warning(f"Authentication failed for user: {username} - {error_msg}")
+                    db_utils.log_ad_event(
+                        username=username,
+                        action='authentication_failed',
+                        details=f'Invalid credentials for user: {username}',
+                        success=False,
+                        error_message=error_msg
+                    )
+                    auth_connection.unbind()
+                    return False, None
+                    
+            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                logger.warning(f"Authentication failed - invalid credentials for user: {username}")
                 db_utils.log_ad_event(
                     username=username,
                     action='authentication_failed',
-                    details=f'Invalid credentials for user: {username}',
+                    details=f'Authentication failed - invalid credentials for user: {username}',
                     success=False,
                     error_message='Invalid credentials'
+                )
+                auth_connection.unbind()
+                return False, None
+            except ldap3.core.exceptions.LDAPException as e:
+                logger.error(f"LDAP error during authentication for user {username}: {str(e)}")
+                db_utils.log_ad_event(
+                    username=username,
+                    action='authentication_error',
+                    details=f'LDAP error during authentication: {str(e)}',
+                    success=False,
+                    error_message=str(e)
                 )
                 auth_connection.unbind()
                 return False, None

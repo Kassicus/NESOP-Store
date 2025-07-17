@@ -79,6 +79,22 @@ class DeploymentConfig:
                 'allowed_extensions': ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
                 'upload_path': 'assets/images',
                 'session_lifetime': 86400  # 24 hours
+            },
+            'email_notifications': {
+                'enabled': False,
+                'smtp_server': 'your-exchange-server.yourdomain.com',
+                'smtp_port': 587,
+                'use_tls': True,
+                'use_ssl': False,
+                'username': 'nesop-store@yourdomain.com',
+                'password': '',
+                'from_email': 'nesop-store@yourdomain.com',
+                'from_name': 'NESOP Store',
+                'to_email': 'store-team@yourdomain.com',
+                'to_name': 'Store Team',
+                'subject_prefix': '[NESOP Store]',
+                'timeout': 10,
+                'test_mode': False
             }
         }
         
@@ -161,6 +177,22 @@ DEPLOYMENT_HOST={config['deployment']['host']}
 DEPLOYMENT_PORT={config['deployment']['port']}
 DEPLOYMENT_WORKERS={config['deployment']['workers']}
 DEPLOYMENT_TIMEOUT={config['deployment']['timeout']}
+
+# Email Notifications
+EMAIL_ENABLED={str(config['email_notifications']['enabled']).lower()}
+EMAIL_SMTP_SERVER={config['email_notifications']['smtp_server']}
+EMAIL_SMTP_PORT={config['email_notifications']['smtp_port']}
+EMAIL_USE_TLS={str(config['email_notifications']['use_tls']).lower()}
+EMAIL_USE_SSL={str(config['email_notifications']['use_ssl']).lower()}
+EMAIL_USERNAME={config['email_notifications']['username']}
+EMAIL_PASSWORD={config['email_notifications']['password']}
+EMAIL_FROM_EMAIL={config['email_notifications']['from_email']}
+EMAIL_FROM_NAME={config['email_notifications']['from_name']}
+EMAIL_TO_EMAIL={config['email_notifications']['to_email']}
+EMAIL_TO_NAME={config['email_notifications']['to_name']}
+EMAIL_SUBJECT_PREFIX={config['email_notifications']['subject_prefix']}
+EMAIL_TIMEOUT={config['email_notifications']['timeout']}
+EMAIL_TEST_MODE={str(config['email_notifications']['test_mode']).lower()}
 """
         
         with open('.env.production', 'w') as f:
@@ -567,11 +599,98 @@ echo "Please change the default password after first login."
         if currency:
             config['app_settings']['currency_symbol'] = currency
         
+        # Email notification settings
+        print("\n4. Email Notifications")
+        print("-" * 30)
+        
+        email_enabled = input(f"Enable email notifications for orders? [{'Y' if config['email_notifications']['enabled'] else 'N'}]: ").strip().lower()
+        if email_enabled in ['y', 'yes', 'n', 'no']:
+            config['email_notifications']['enabled'] = email_enabled in ['y', 'yes']
+        
+        if config['email_notifications']['enabled']:
+            print("\nEmail Server Configuration:")
+            print("For Exchange Server, common settings:")
+            print("  - Internal Exchange: your-exchange-server.yourdomain.com:587 (STARTTLS)")
+            print("  - Office 365: smtp.office365.com:587 (STARTTLS)")
+            print("  - Anonymous relay: your-exchange-server.yourdomain.com:25 (no auth)")
+            
+            smtp_server = input(f"SMTP server [{config['email_notifications']['smtp_server']}]: ").strip()
+            if smtp_server:
+                config['email_notifications']['smtp_server'] = smtp_server
+            
+            smtp_port = input(f"SMTP port [{config['email_notifications']['smtp_port']}]: ").strip()
+            if smtp_port:
+                config['email_notifications']['smtp_port'] = int(smtp_port)
+            
+            # Authentication method
+            print("\nAuthentication Options:")
+            print("1. Username/Password (service account)")
+            print("2. Anonymous relay (no authentication)")
+            
+            auth_method = input("Choose authentication method [1/2]: ").strip()
+            if auth_method == "2":
+                config['email_notifications']['username'] = ''
+                config['email_notifications']['password'] = ''
+                config['email_notifications']['smtp_port'] = 25  # Default for anonymous relay
+                config['email_notifications']['use_tls'] = False
+                print("✓ Anonymous relay configured")
+            else:
+                username = input(f"Email username [{config['email_notifications']['username']}]: ").strip()
+                if username:
+                    config['email_notifications']['username'] = username
+                
+                password = input("Email password: ").strip()
+                if password:
+                    config['email_notifications']['password'] = password
+                
+                # TLS/SSL settings
+                use_tls = input(f"Use STARTTLS? [{'Y' if config['email_notifications']['use_tls'] else 'N'}]: ").strip().lower()
+                if use_tls in ['y', 'yes', 'n', 'no']:
+                    config['email_notifications']['use_tls'] = use_tls in ['y', 'yes']
+                
+                use_ssl = input(f"Use SSL? [{'Y' if config['email_notifications']['use_ssl'] else 'N'}]: ").strip().lower()
+                if use_ssl in ['y', 'yes', 'n', 'no']:
+                    config['email_notifications']['use_ssl'] = use_ssl in ['y', 'yes']
+            
+            # From email settings
+            from_email = input(f"From email address [{config['email_notifications']['from_email']}]: ").strip()
+            if from_email:
+                config['email_notifications']['from_email'] = from_email
+            
+            from_name = input(f"From name [{config['email_notifications']['from_name']}]: ").strip()
+            if from_name:
+                config['email_notifications']['from_name'] = from_name
+            
+            # To email settings
+            to_email = input(f"Order notification email [{config['email_notifications']['to_email']}]: ").strip()
+            if to_email:
+                config['email_notifications']['to_email'] = to_email
+            
+            to_name = input(f"Team name [{config['email_notifications']['to_name']}]: ").strip()
+            if to_name:
+                config['email_notifications']['to_name'] = to_name
+            
+            # Subject prefix
+            subject_prefix = input(f"Email subject prefix [{config['email_notifications']['subject_prefix']}]: ").strip()
+            if subject_prefix:
+                config['email_notifications']['subject_prefix'] = subject_prefix
+            
+            # Test mode
+            test_mode = input(f"Enable test mode (log only, no emails)? [{'Y' if config['email_notifications']['test_mode'] else 'N'}]: ").strip().lower()
+            if test_mode in ['y', 'yes', 'n', 'no']:
+                config['email_notifications']['test_mode'] = test_mode in ['y', 'yes']
+            
+            print("\n✓ Email notification configuration complete")
+            print(f"  - Server: {config['email_notifications']['smtp_server']}:{config['email_notifications']['smtp_port']}")
+            print(f"  - From: {config['email_notifications']['from_email']}")
+            print(f"  - To: {config['email_notifications']['to_email']}")
+            print(f"  - Test mode: {config['email_notifications']['test_mode']}")
+        
         # Save configuration
         self.save_config(config)
         
         # Generate deployment files
-        print("\n4. Generating Deployment Files")
+        print("\n5. Generating Deployment Files")
         print("-" * 30)
         
         self.create_production_env(config)

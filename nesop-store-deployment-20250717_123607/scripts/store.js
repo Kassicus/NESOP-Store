@@ -86,6 +86,8 @@ function showStore(username) {
                   align-items: center;
                   justify-content: center;
                   margin-right: 0.5rem;
+                  width: 2.2rem;
+                  height: 2.2rem;
                 "
                 onmouseover="this.style.background='#125ea7'"
                 onmouseout="this.style.background='rgba(255,255,255,0.18)'"
