@@ -76,14 +76,8 @@ def place_order():
         # Generate unique order ID
         order_id = f"NESOP-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
         
-        # Get user email (from AD info if available, otherwise construct from username)
-        user_email = None
-        if len(user) > 8 and user[8]:  # ad_email field
-            user_email = user[8]
-        else:
-            # Construct email if AD email not available
-            email_domain = config.get_email_config().server.split('.', 1)[-1] if '.' in config.get_email_config().server else 'yourdomain.com'
-            user_email = f"{username}@{email_domain}"
+        # Get fulfillment team email from configuration
+        fulfillment_email = config.get_email_config().fulfillment_email
         
         # Format items for database storage
         formatted_items = []
@@ -94,8 +88,8 @@ def place_order():
                 'quantity': 1  # Default quantity
             })
         
-        # Add order to database
-        order_success = db_utils.add_order(order_id, username, user_email, total, formatted_items)
+        # Add order to database (using fulfillment email for tracking)
+        order_success = db_utils.add_order(order_id, username, fulfillment_email, total, formatted_items)
         if not order_success:
             return jsonify({'error': 'Failed to create order'}), 500
         
@@ -103,30 +97,33 @@ def place_order():
         new_balance = user_balance - total
         db_utils.update_balance(username, new_balance)
         
-        # Prepare order details for email
+        # Prepare order details for fulfillment team email
         order_details = {
             'order_id': order_id,
             'order_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'customer_username': username,
+            'customer_display_name': user[7] if len(user) > 7 and user[7] else username,  # AD display name if available
             'items': formatted_items,
-            'total': total
+            'total': total,
+            'customer_balance_after': new_balance
         }
         
-        # Send email confirmation
-        email_sent = email_utils.send_order_confirmation(user_email, username, order_details)
+        # Send email notification to fulfillment team
+        email_sent = email_utils.send_order_notification(fulfillment_email, order_details)
         
         # Mark email as sent if successful
         if email_sent:
             db_utils.mark_email_sent(order_id)
         
         # Log order completion
-        logging.info(f"Order {order_id} placed successfully for user {username}, total: €{total}, email sent: {email_sent}")
+        logging.info(f"Order {order_id} placed successfully for user {username}, total: €{total}, fulfillment notification sent: {email_sent}")
         
         return jsonify({
             'success': True,
             'order_id': order_id,
             'new_balance': new_balance,
             'email_sent': email_sent,
-            'message': f'Order placed successfully! Confirmation email {"sent" if email_sent else "could not be sent"} to {user_email}'
+            'message': f'Order placed successfully! Fulfillment team {"notified" if email_sent else "notification failed"}'
         })
         
     except Exception as e:

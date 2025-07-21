@@ -22,6 +22,101 @@ class EmailManager:
     def __init__(self):
         self.email_config = config.get_email_config()
     
+    def send_fulfillment_email(self, fulfillment_email: str, order_details: Dict[str, Any]) -> bool:
+        """
+        Send order notification email to fulfillment team
+        
+        Args:
+            fulfillment_email: Email address of the fulfillment team
+            order_details: Dictionary containing order information
+            
+        Returns:
+            bool: True if email sent successfully, False otherwise
+        """
+        if not self.email_config.is_enabled:
+            logger.info("Email is disabled, skipping fulfillment notification")
+            return False
+        
+        if not fulfillment_email:
+            logger.warning("No fulfillment email address configured")
+            return False
+        
+        try:
+            # Create email content
+            subject = f"New NESOP Store Order - {order_details.get('order_id', 'N/A')}"
+            body = self._create_fulfillment_email_body(order_details)
+            
+            # Send email
+            success = self._send_email(
+                to_email=fulfillment_email,
+                subject=subject,
+                body=body,
+                is_html=False
+            )
+            
+            if success:
+                logger.info(f"Order fulfillment notification sent to {fulfillment_email} for order {order_details.get('order_id', 'N/A')}")
+            else:
+                logger.error(f"Failed to send fulfillment notification to {fulfillment_email} for order {order_details.get('order_id', 'N/A')}")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error sending fulfillment notification to {fulfillment_email}: {str(e)}")
+            return False
+
+    def _create_fulfillment_email_body(self, order_details: Dict[str, Any]) -> str:
+        """Create the email body for fulfillment team notification"""
+        
+        order_id = order_details.get('order_id', 'N/A')
+        order_date = order_details.get('order_date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        customer_username = order_details.get('customer_username', 'Unknown')
+        customer_display_name = order_details.get('customer_display_name', customer_username)
+        items = order_details.get('items', [])
+        total = order_details.get('total', 0)
+        customer_balance = order_details.get('customer_balance_after', 'N/A')
+        
+        # Create items list
+        items_text = ""
+        for item in items:
+            items_text += f"- {item.get('name', 'N/A')} (€ {item.get('price', 0)})\n"
+        
+        body = f"""NEW ORDER - NESOP STORE
+========================
+
+A new order has been placed and requires fulfillment.
+
+ORDER DETAILS:
+=============
+Order ID: {order_id}
+Order Date: {order_date}
+Order Total: € {total}
+
+CUSTOMER INFORMATION:
+====================
+Username: {customer_username}
+Display Name: {customer_display_name}
+Balance After Order: € {customer_balance}
+
+ITEMS TO FULFILL:
+================
+{items_text}
+
+FULFILLMENT INSTRUCTIONS:
+========================
+1. Prepare the items listed above
+2. Contact the customer to arrange pickup/delivery
+3. Mark the order as fulfilled in the system
+
+If you have any questions about this order, please contact the NESOP Store administrator.
+
+---
+This is an automated notification from NESOP Store.
+Order processed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        return body
+
     def send_order_email(self, user_email: str, username: str, order_details: Dict[str, Any]) -> bool:
         """
         Send order confirmation email to user
@@ -221,9 +316,22 @@ NESOP Store System
 # Global email manager instance
 email_manager = EmailManager()
 
+def send_order_notification(fulfillment_email: str, order_details: Dict[str, Any]) -> bool:
+    """
+    Send order notification email to fulfillment team
+    
+    Args:
+        fulfillment_email: Email address of the fulfillment team
+        order_details: Dictionary containing order information
+        
+    Returns:
+        bool: True if sent successfully, False otherwise
+    """
+    return email_manager.send_fulfillment_email(fulfillment_email, order_details)
+
 def send_order_confirmation(user_email: str, username: str, order_details: Dict[str, Any]) -> bool:
     """
-    Send order confirmation email
+    Send order confirmation email (DEPRECATED - use send_order_notification instead)
     
     Args:
         user_email: Recipient email address

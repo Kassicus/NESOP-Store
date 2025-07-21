@@ -175,7 +175,7 @@
                 });
               
               // Show success message
-              const emailStatus = data.email_sent ? 'Email confirmation sent!' : 'Order confirmed (email could not be sent)';
+              const emailStatus = data.email_sent ? 'Fulfillment team notified!' : 'Order confirmed (fulfillment team notification failed)';
               document.getElementById('checkout-message').innerHTML = 
                 `<span style="color:green;">Order placed successfully!<br/>Order ID: ${data.order_id}<br/>${emailStatus}</span>`;
             } else {

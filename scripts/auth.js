@@ -15,16 +15,18 @@ function showLoginForm() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </button>
     </div>
-    <div class="login-container">
-      <h2 style="text-align:center;">NESOP Store</h2>
-      <form id="login-form" style="display:flex;flex-direction:column;align-items:center;">
-        <input type="text" id="username" placeholder="Username" required style="margin-bottom:0.7em;width:85%;" />
-        <input type="password" id="password" placeholder="Password" required style="margin-bottom:0.7em;width:85%;" />
-        <button type="submit" class="login-btn" style="margin-bottom:0.7em;width:85%;">Login</button>
-        <div id="login-error" style="color:red;margin-top:8px;text-align:center;"></div>
-      </form>
-      <div style="text-align:center;margin-top:1.5em;">
-        <a href="register.html" style="color:#1976d2;text-decoration:none;font-size:1.05em;">Register Here</a>
+    <div class="login-page-background">
+      <div class="login-splash-image">
+        <img src="assets/resources/nesop_splash.jpg" alt="NESOP Store" class="splash-image" />
+      </div>
+      <div class="login-container">
+        <h2 style="text-align:center;">Login</h2>
+        <form id="login-form" style="display:flex;flex-direction:column;align-items:center;">
+          <input type="text" id="username" placeholder="Username" required style="margin-bottom:0.7em;width:85%;" />
+          <input type="password" id="password" placeholder="Password" required style="margin-bottom:0.7em;width:85%;" />
+          <button type="submit" class="login-btn" style="margin-bottom:0.7em;width:85%;">Login</button>
+          <div id="login-error" style="color:red;margin-top:8px;text-align:center;"></div>
+        </form>
       </div>
     </div>
   `;

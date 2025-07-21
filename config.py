@@ -25,6 +25,7 @@ class EmailConfig:
     from_name: str = "NESOP Store"
     is_enabled: bool = False
     timeout: int = 30
+    fulfillment_email: str = "nesop-fulfillment@yourdomain.com"
 
 @dataclass
 class ADConfig:
@@ -138,6 +139,7 @@ class ConfigManager:
             self.config.email_config.from_name = os.getenv('EMAIL_FROM_NAME', self.config.email_config.from_name)
             self.config.email_config.use_tls = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
             self.config.email_config.is_enabled = os.getenv('EMAIL_ENABLED', 'False').lower() == 'true'
+            self.config.email_config.fulfillment_email = os.getenv('EMAIL_FULFILLMENT_EMAIL', self.config.email_config.fulfillment_email)
             
             email_port = os.getenv('EMAIL_PORT')
             if email_port:
@@ -285,6 +287,7 @@ EMAIL_FROM_NAME=NESOP Store
 EMAIL_USE_TLS=true
 EMAIL_TIMEOUT=30
 EMAIL_ENABLED=false
+EMAIL_FULFILLMENT_EMAIL=nesop-fulfillment@yourdomain.com
 
 # Authentication Settings
 LOCAL_ADMIN_USERNAME=fallback_admin
@@ -350,7 +353,8 @@ USE_MOCK_AD=false
                 'use_tls': self.config.email_config.use_tls,
                 'timeout': self.config.email_config.timeout,
                 'is_enabled': self.config.email_config.is_enabled,
-                'password_set': bool(self.config.email_config.password)
+                'password_set': bool(self.config.email_config.password),
+                'fulfillment_email': self.config.email_config.fulfillment_email
             },
             'auth': {
                 'local_admin_username': self.config.local_admin_username,
