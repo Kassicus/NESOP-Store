@@ -280,7 +280,7 @@
             </select>
           </div>
           <div>
-            <label for="individual-currency-amount" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Amount (€):</label>
+            <label for="individual-currency-amount" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Amount (₦):</label>
             <input type="number" id="individual-currency-amount" class="admin-input" placeholder="Amount" step="0.01" style="width:100px;" />
           </div>
           <div style="flex:1;min-width:200px;">
@@ -297,7 +297,7 @@
         <h4 style="margin-top:0; color: #1976d2;">Add Currency to All Users</h4>
         <div style="display:flex;align-items:end;gap:1rem;flex-wrap:wrap;">
           <div>
-            <label for="bulk-currency-amount" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Amount (€):</label>
+            <label for="bulk-currency-amount" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Amount (₦):</label>
             <input type="number" id="bulk-currency-amount" class="admin-input" placeholder="Amount" step="0.01" style="width:100px;" />
           </div>
           <div style="flex:1;min-width:200px;">
@@ -628,7 +628,7 @@
           (data.users || []).forEach(user => {
             const option = document.createElement('option');
             option.value = user.username;
-            option.textContent = `${user.username} (€${user.balance})`;
+            option.textContent = `${user.username} (₦${user.balance})`;
             userSelect.appendChild(option);
           });
         }
@@ -985,7 +985,7 @@
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          messageDiv.textContent = `Added €${amount} to ${targetUsername}. New balance: €${data.new_balance}`;
+          messageDiv.textContent = `Added ₦${amount} to ${targetUsername}. New balance: ₦${data.new_balance}`;
           messageDiv.style.color = '#4caf50';
           
           // Clear form
@@ -1031,7 +1031,7 @@
       }
       
       // Confirm action
-      if (!confirm(`Are you sure you want to add €${amount} to all users?\\nNote: ${note}`)) {
+      if (!confirm(`Are you sure you want to add ₦${amount} to all users?\\nNote: ${note}`)) {
         return;
       }
       
@@ -1048,7 +1048,7 @@
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          messageDiv.textContent = `Added €${amount} to all users. ${data.updated} users updated, ${data.transaction_count} transactions created.`;
+          messageDiv.textContent = `Added ₦${amount} to all users. ${data.updated} users updated, ${data.transaction_count} transactions created.`;
           messageDiv.style.color = '#4caf50';
           
           // Clear form
@@ -1114,7 +1114,7 @@
               <tr>
                 <th>Date/Time</th>
                 <th>Username</th>
-                <th>Amount (€)</th>
+                <th>Amount (₦)</th>
                 <th>Type</th>
                 <th>Note</th>
                 <th>Added By</th>
@@ -1132,7 +1132,7 @@
           <tr>
             <td>${date}</td>
             <td><strong>${tx.username}</strong></td>
-            <td ${amountClass}>${tx.amount >= 0 ? '+' : ''}€${tx.amount.toFixed(2)}</td>
+            <td ${amountClass}>${tx.amount >= 0 ? '+' : ''}₦${tx.amount.toFixed(2)}</td>
             <td>${typeDisplay}</td>
             <td style="max-width:200px;word-wrap:break-word;">${tx.note || '-'}</td>
             <td>${tx.added_by}</td>

@@ -79,7 +79,7 @@ class EmailManager:
         # Create items list
         items_text = ""
         for item in items:
-            items_text += f"- {item.get('name', 'N/A')} (€ {item.get('price', 0)})\n"
+            items_text += f"- {item.get('name', 'N/A')} (₦ {item.get('price', 0)})\n"
         
         body = f"""NEW ORDER - NESOP STORE
 ========================
@@ -90,13 +90,13 @@ ORDER DETAILS:
 =============
 Order ID: {order_id}
 Order Date: {order_date}
-Order Total: € {total}
+Order Total: ₦ {total}
 
 CUSTOMER INFORMATION:
 ====================
 Username: {customer_username}
 Display Name: {customer_display_name}
-Balance After Order: € {customer_balance}
+Balance After Order: ₦ {customer_balance}
 
 ITEMS TO FULFILL:
 ================
@@ -169,11 +169,11 @@ Order processed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         items = order_details.get('items', [])
         total = order_details.get('total', 0)
         
-        # Create items list
+                # Create items list
         items_text = ""
         for item in items:
-            items_text += f"- {item.get('name', 'N/A')} (€ {item.get('price', 0)})\n"
-        
+            items_text += f"- {item.get('name', 'N/A')} (₦ {item.get('price', 0)})\n"
+
         body = f"""Dear {username},
 
 Thank you for your order from NESOP Store!
@@ -185,7 +185,7 @@ Order Date: {order_date}
 
 Items Ordered:
 {items_text}
-Total Amount: € {total}
+Total Amount: ₦ {total}
 
 Your order has been successfully processed and your account balance has been updated.
 

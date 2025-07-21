@@ -160,7 +160,7 @@ The application uses the following environment variables (configured in `.env.pr
 
 #### Application Settings
 - `STORE_NAME`: Display name for the store
-- `CURRENCY_SYMBOL`: Currency symbol (€, $, etc.)
+- `CURRENCY_SYMBOL`: Currency symbol (₦, €, $, etc.)
 - `MAX_FILE_SIZE`: Maximum upload file size in bytes
 - `UPLOAD_PATH`: Path for uploaded files
 - `SESSION_LIFETIME`: Session timeout in seconds

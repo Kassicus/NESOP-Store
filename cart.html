@@ -97,7 +97,7 @@
                   <div class="cart-item-info">
                     <div class="cart-item-title">${cartItem.item}</div>
                     <div class="cart-item-desc">${cartItem.description}</div>
-                    <div class="cart-item-price">€ ${cartItem.price}</div>
+                    <div class="cart-item-price">₦ ${cartItem.price}</div>
                     <button class="remove-cart-btn" onclick="removeFromCart(${idx})">Remove</button>
                   </div>
                 </div>
@@ -115,7 +115,7 @@
                   <div class="cart-item-info">
                     <div class="cart-item-title">${item.item}</div>
                     <div class="cart-item-desc">${item.description}</div>
-                    <div class="cart-item-price">€ ${item.price}</div>
+                    <div class="cart-item-price">₦ ${item.price}</div>
                     <button class="remove-cart-btn" onclick="removeFromCart(${idx})">Remove</button>
                   </div>
                 </div>
@@ -133,7 +133,7 @@
             <div class="cart-list">${itemsHtml}</div>
             <div class="cart-total-row">
               <span class="cart-total-label">Total:</span>
-              <span class="cart-total-value">€ ${total}</span>
+              <span class="cart-total-value">₦ ${total}</span>
             </div>
             <button class="checkout-btn" id="checkout-btn" ${cartLength === 0 ? 'disabled' : ''}>Proceed to Purchase</button>
             <div id="checkout-message" style="margin-top:1rem;"></div>

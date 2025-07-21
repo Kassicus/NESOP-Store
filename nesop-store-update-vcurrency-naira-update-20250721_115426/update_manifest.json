@@ -1,0 +1,68 @@
+{
+  "update_created": "2025-07-21T11:54:26.470135",
+  "update_version": "currency-naira-update",
+  "update_type": "rolling_update",
+  "target_deployment": "/opt/nesop-store",
+  "requires_restart": true,
+  "includes_migrations": false,
+  "backup_required": true,
+  "files_updated": [
+    {
+      "file": "server.py",
+      "hash": "15ae10e2c4442292673999e7ffcb1edd844cf791ef906dfbf54feb888ba7e5fb",
+      "size": 39529
+    },
+    {
+      "file": "db_utils.py",
+      "hash": "30bd779908b65ed5f9520c433f3e2226ae46ad7ce34469d202bccbe821e5f45d",
+      "size": 29089
+    },
+    {
+      "file": "ad_utils.py",
+      "hash": "f886c7dfa8e704440c6245001986020f72a8bf3bd1fca7d694f3fbe1a91cc86e",
+      "size": 32701
+    },
+    {
+      "file": "config.py",
+      "hash": "740a78bde3fa857d1961d250ed5c09edaab3c56d2a6d1d4ee2df11c91daa2d08",
+      "size": 17486
+    },
+    {
+      "file": "index.html",
+      "hash": "9a5215130678382c2cf7df2360001b8b77d9862f8a92562828ddb700ec2346fd",
+      "size": 1421
+    },
+    {
+      "file": "admin.html",
+      "hash": "5a7beb9bad2759a4044e5ca8b2369fa9558c45e004eb43f8c9df3917ef250edd",
+      "size": 48376
+    },
+    {
+      "file": "cart.html",
+      "hash": "e37531cc47704e0e26337af096e86b14a6f40619ac36d2d88325943ae63e255b",
+      "size": 12093
+    },
+    {
+      "file": "register.html",
+      "hash": "5e78ecaff05985724a2b2ff89dc0bc0672d3686351e3bd8efb5111b005f807a5",
+      "size": 2940
+    }
+  ],
+  "directories_updated": [
+    "scripts",
+    "styles",
+    "assets"
+  ],
+  "migrations_included": [],
+  "pre_update_checks": [
+    "Verify service is running",
+    "Check database connectivity",
+    "Verify disk space available"
+  ],
+  "post_update_checks": [
+    "Restart application service",
+    "Run database migrations",
+    "Validate application startup",
+    "Check service health"
+  ]
+}

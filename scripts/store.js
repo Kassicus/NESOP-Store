@@ -62,7 +62,7 @@ function showStore(username) {
           <div class="user-info" style="display: flex; justify-content: center; align-items: center; flex-direction: row; margin-top: 0.5rem; margin-bottom: 0.5rem; width: 100%;">
             <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; margin-left: 2rem;">
               <span style="font-size:1.25em; margin-left: 0; padding-left: 0;">Welcome <b style="text-transform:capitalize;">${capitalizeFirstLetter(extractUsername(username))}</b>!</span>
-              <span style="font-size:0.98em; color:#fff; margin-top:0.2em;">Balance: € ${balance}</span>
+              <span style="font-size:0.98em; color:#fff; margin-top:0.2em;">Balance: ₦ ${balance}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <a href="account.html" class="cart-link" title="My Account" style="margin-right: 0.5rem;">
@@ -152,10 +152,10 @@ function openProductModal(itemName) {
       <div class="modal-product-main">
         <img src="${product.image || 'assets/images/placeholder.png'}" alt="${product.item}" class="modal-product-img" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
         <div class="modal-product-info">
-          <h2 class="product-name" style="margin-top:0;">${product.item}</h2>
-          <p class="product-desc">${product.description}</p>
-          <div class="modal-product-price">€ ${product.price}</div>
-          <button id="modal-add-cart-btn" class="action-btn add${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''} style="margin-top:1em;">${product.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
+                  <h2 class="product-name" style="margin-top:0;">${product.item}</h2>
+        <p class="product-desc">${product.description}</p>
+        <div class="modal-product-price">₦ ${product.price}</div>
+        <button id="modal-add-cart-btn" class="action-btn add${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''} style="margin-top:1em;">${product.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
         </div>
       </div>
       <form id="modal-review-form">
@@ -312,7 +312,7 @@ function renderItems(items) {
         <h3 class="product-name" data-item="${item.item}" style="cursor:pointer;">${item.item}</h3>
         <p class="product-desc">${item.description}</p>
         <div class="product-bottom">
-          <span class="product-price">€ ${item.price}</span>
+          <span class="product-price">₦ ${item.price}</span>
           <button class="add-cart-btn${item.sold_out ? ' sold-out-btn' : ''}" data-idx="${idx}" ${item.sold_out ? 'disabled' : ''}>${item.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
         </div>
       </div>

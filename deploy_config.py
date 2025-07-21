@@ -74,7 +74,7 @@ class DeploymentConfig:
             },
             'app_settings': {
                 'store_name': 'NESOP Store',
-                'currency_symbol': '€',
+                'currency_symbol': '₦',
                 'max_file_size': 16777216,  # 16MB
                 'allowed_extensions': ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
                 'upload_path': 'assets/images',

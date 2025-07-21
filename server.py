@@ -94,7 +94,7 @@ def place_order():
             return jsonify({'error': 'Failed to create order'}), 500
         
         # Update user balance and log transaction
-        items_summary = ", ".join([f"{item['name']} (€{item['price']})" for item in formatted_items])
+        items_summary = ", ".join([f"{item['name']} (₦{item['price']})" for item in formatted_items])
         transaction_result = db_utils.add_currency_with_transaction_log(
             username=username,
             amount=-total,  # Negative for purchase
@@ -127,7 +127,7 @@ def place_order():
             db_utils.mark_email_sent(order_id)
         
         # Log order completion
-        logging.info(f"Order {order_id} placed successfully for user {username}, total: €{total}, fulfillment notification sent: {email_sent}")
+        logging.info(f"Order {order_id} placed successfully for user {username}, total: ₦{total}, fulfillment notification sent: {email_sent}")
         
         return jsonify({
             'success': True,
