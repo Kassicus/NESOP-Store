@@ -93,9 +93,20 @@ def place_order():
         if not order_success:
             return jsonify({'error': 'Failed to create order'}), 500
         
-        # Update user balance
-        new_balance = user_balance - total
-        db_utils.update_balance(username, new_balance)
+        # Update user balance and log transaction
+        items_summary = ", ".join([f"{item['name']} (€{item['price']})" for item in formatted_items])
+        transaction_result = db_utils.add_currency_with_transaction_log(
+            username=username,
+            amount=-total,  # Negative for purchase
+            transaction_type='purchase',
+            note=f"Purchase: {items_summary} [Order: {order_id}]",
+            added_by='system'
+        )
+
+        if not transaction_result['success']:
+            return jsonify({'error': 'Failed to process payment'}), 500
+
+        new_balance = transaction_result['new_balance']
         
         # Prepare order details for fulfillment team email
         order_details = {
@@ -589,6 +600,164 @@ def add_currency_to_all_users_route():
     updated = db_utils.add_currency_to_all_users(amount)
     logging.info(f"Admin {username} added {amount} to all user balances. {updated} users updated.")
     return jsonify({'success': True, 'updated': updated})
+
+@app.route('/api/users/add-currency-with-note', methods=['POST'])
+def add_currency_with_note_route():
+    """Add currency to a specific user with a note"""
+    data = request.get_json()
+    admin_username = data.get('admin_username')
+    target_username = data.get('username')  # User to add currency to
+    amount = data.get('amount')
+    note = data.get('note', '')
+    
+    # Validation
+    if not admin_username or not target_username or amount is None:
+        logging.warning(f"Invalid add-currency-with-note request: {data}")
+        return jsonify({'error': 'Admin username, target username, and amount required.'}), 400
+    
+    if not db_utils.is_admin(admin_username):
+        logging.warning(f"Unauthorized add-currency-with-note attempt by {admin_username}.")
+        return jsonify({'error': 'Admin privileges required.'}), 403
+    
+    try:
+        amount = float(amount)
+    except Exception:
+        return jsonify({'error': 'Amount must be a number.'}), 400
+    
+    if amount == 0:
+        return jsonify({'error': 'Amount must not be zero.'}), 400
+    
+    # Verify target user exists
+    target_user = db_utils.get_user(target_username)
+    if not target_user:
+        return jsonify({'error': 'Target user not found.'}), 404
+    
+    # Add currency with transaction log
+    result = db_utils.add_currency_with_transaction_log(
+        username=target_username,
+        amount=amount,
+        transaction_type='admin_add',
+        note=note,
+        added_by=admin_username
+    )
+    
+    if result['success']:
+        logging.info(f"Admin {admin_username} added {amount} to {target_username}. New balance: {result['new_balance']}")
+        return jsonify({
+            'success': True,
+            'new_balance': result['new_balance'],
+            'transaction_id': result['transaction_id']
+        })
+    else:
+        logging.error(f"Failed to add currency to {target_username}: {result.get('error')}")
+        return jsonify({'error': result.get('error', 'Failed to add currency')}), 500
+
+@app.route('/api/users/add-currency-bulk-with-note', methods=['POST'])
+def add_currency_bulk_with_note_route():
+    """Add currency to all users with a note"""
+    data = request.get_json()
+    admin_username = data.get('admin_username')
+    amount = data.get('amount')
+    note = data.get('note', '')
+    
+    # Validation
+    if not admin_username or amount is None:
+        logging.warning(f"Invalid add-currency-bulk-with-note request: {data}")
+        return jsonify({'error': 'Admin username and amount required.'}), 400
+    
+    if not db_utils.is_admin(admin_username):
+        logging.warning(f"Unauthorized add-currency-bulk-with-note attempt by {admin_username}.")
+        return jsonify({'error': 'Admin privileges required.'}), 403
+    
+    try:
+        amount = float(amount)
+    except Exception:
+        return jsonify({'error': 'Amount must be a number.'}), 400
+    
+    if amount == 0:
+        return jsonify({'error': 'Amount must not be zero.'}), 400
+    
+    # Add currency to all users with transaction log
+    result = db_utils.add_currency_to_all_users_with_note(
+        amount=amount,
+        note=note,
+        added_by=admin_username
+    )
+    
+    if result['success']:
+        logging.info(f"Admin {admin_username} added {amount} to all users. Updated: {result['updated']}")
+        return jsonify({
+            'success': True,
+            'updated': result['updated'],
+            'transaction_count': len(result['transaction_ids'])
+        })
+    else:
+        logging.error(f"Failed to add currency to all users: {result.get('error')}")
+        return jsonify({'error': result.get('error', 'Failed to add currency')}), 500
+
+@app.route('/api/users/<username>/transactions', methods=['GET'])
+def get_user_transactions_route(username):
+    """Get transaction history for a specific user"""
+    # Check if user is requesting their own transactions or if they're an admin
+    requesting_user = request.args.get('requesting_user')
+    if not requesting_user:
+        return jsonify({'error': 'Requesting user required.'}), 400
+    
+    # Users can only see their own transactions, admins can see any user's transactions
+    if username != requesting_user and not db_utils.is_admin(requesting_user):
+        logging.warning(f"Unauthorized transaction history access attempt by {requesting_user} for {username}")
+        return jsonify({'error': 'Unauthorized access.'}), 403
+    
+    # Get pagination parameters
+    try:
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        limit = min(limit, 100)  # Cap at 100
+    except ValueError:
+        return jsonify({'error': 'Invalid pagination parameters.'}), 400
+    
+    # Get transactions
+    transactions = db_utils.get_user_currency_transactions(username, limit, offset)
+    total_count = db_utils.get_currency_transaction_count(username)
+    
+    return jsonify({
+        'success': True,
+        'transactions': transactions,
+        'total_count': total_count,
+        'limit': limit,
+        'offset': offset
+    })
+
+@app.route('/api/admin/transactions', methods=['GET'])
+def get_all_transactions_route():
+    """Get all currency transactions (admin only)"""
+    requesting_user = request.args.get('requesting_user')
+    if not requesting_user or not db_utils.is_admin(requesting_user):
+        logging.warning(f"Unauthorized all-transactions access attempt by {requesting_user}")
+        return jsonify({'error': 'Admin privileges required.'}), 403
+    
+    # Get pagination and filter parameters
+    try:
+        limit = int(request.args.get('limit', 100))
+        offset = int(request.args.get('offset', 0))
+        limit = min(limit, 200)  # Cap at 200 for admin
+    except ValueError:
+        return jsonify({'error': 'Invalid pagination parameters.'}), 400
+    
+    username_filter = request.args.get('username_filter')
+    
+    # Get transactions
+    transactions = db_utils.get_all_currency_transactions(limit, offset, username_filter)
+    total_count = db_utils.get_currency_transaction_count(username_filter)
+    
+    return jsonify({
+        'success': True,
+        'transactions': transactions,
+        'total_count': total_count,
+        'limit': limit,
+        'offset': offset,
+        'username_filter': username_filter
+    })
 
 # --- Item Management (Admin) ---
 @app.route('/api/items', methods=['GET'])

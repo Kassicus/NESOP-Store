@@ -601,5 +601,260 @@ def get_all_orders():
         logger.error(f"Error getting all orders: {str(e)}")
         return []
 
+
+# --- Currency Transaction Management Functions ---
+
+def add_currency_with_transaction_log(username, amount, transaction_type, note, added_by):
+    """
+    Add currency to a specific user and log the transaction.
+    
+    Args:
+        username (str): Username to add currency to
+        amount (float): Amount to add (can be negative for deductions)
+        transaction_type (str): Type of transaction ('admin_add', 'bulk_add', 'refund', etc.)
+        note (str): Note explaining the transaction
+        added_by (str): Username of the admin who performed the action
+        
+    Returns:
+        dict: {'success': bool, 'new_balance': float, 'transaction_id': int}
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Start transaction
+        c.execute('BEGIN TRANSACTION')
+        
+        # Get current balance
+        c.execute('SELECT balance FROM users WHERE username = ?', (username,))
+        user = c.fetchone()
+        if not user:
+            conn.rollback()
+            conn.close()
+            return {'success': False, 'error': 'User not found'}
+        
+        current_balance = user[0]
+        new_balance = current_balance + amount
+        
+        # Update user balance
+        c.execute('UPDATE users SET balance = ? WHERE username = ?', (new_balance, username))
+        
+        # Log the transaction
+        c.execute('''
+            INSERT INTO currency_transactions 
+            (username, amount, transaction_type, note, added_by)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (username, amount, transaction_type, note, added_by))
+        
+        transaction_id = c.lastrowid
+        
+        # Commit transaction
+        c.execute('COMMIT')
+        conn.close()
+        
+        logger.info(f"Added {amount} to {username} balance. New balance: {new_balance}. Transaction ID: {transaction_id}")
+        
+        return {
+            'success': True,
+            'new_balance': new_balance,
+            'transaction_id': transaction_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error adding currency to {username}: {str(e)}")
+        try:
+            c.execute('ROLLBACK')
+            conn.close()
+        except:
+            pass
+        return {'success': False, 'error': str(e)}
+
+def add_currency_to_all_users_with_note(amount, note, added_by):
+    """
+    Add currency to all users and log individual transactions.
+    
+    Args:
+        amount (float): Amount to add to each user
+        note (str): Note explaining the bulk addition
+        added_by (str): Username of the admin who performed the action
+        
+    Returns:
+        dict: {'success': bool, 'updated': int, 'transaction_ids': list}
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Start transaction
+        c.execute('BEGIN TRANSACTION')
+        
+        # Get all active users
+        c.execute('SELECT username, balance FROM users WHERE is_active = 1')
+        users = c.fetchall()
+        
+        transaction_ids = []
+        updated_count = 0
+        
+        for username, current_balance in users:
+            new_balance = current_balance + amount
+            
+            # Update user balance
+            c.execute('UPDATE users SET balance = ? WHERE username = ?', (new_balance, username))
+            
+            # Log the transaction
+            c.execute('''
+                INSERT INTO currency_transactions 
+                (username, amount, transaction_type, note, added_by)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (username, amount, 'bulk_add', note, added_by))
+            
+            transaction_ids.append(c.lastrowid)
+            updated_count += 1
+        
+        # Commit transaction
+        c.execute('COMMIT')
+        conn.close()
+        
+        logger.info(f"Added {amount} to {updated_count} users. Created {len(transaction_ids)} transaction records.")
+        
+        return {
+            'success': True,
+            'updated': updated_count,
+            'transaction_ids': transaction_ids
+        }
+        
+    except Exception as e:
+        logger.error(f"Error adding currency to all users: {str(e)}")
+        try:
+            c.execute('ROLLBACK')
+            conn.close()
+        except:
+            pass
+        return {'success': False, 'error': str(e)}
+
+def get_user_currency_transactions(username, limit=50, offset=0):
+    """
+    Get currency transaction history for a specific user.
+    
+    Args:
+        username (str): Username to get transactions for
+        limit (int): Maximum number of transactions to return
+        offset (int): Number of transactions to skip (for pagination)
+        
+    Returns:
+        list: List of transaction dictionaries
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        c.execute('''
+            SELECT id, username, amount, transaction_type, note, added_by, created_at
+            FROM currency_transactions 
+            WHERE username = ?
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?
+        ''', (username, limit, offset))
+        
+        transactions = c.fetchall()
+        conn.close()
+        
+        return [
+            {
+                'id': tx[0],
+                'username': tx[1],
+                'amount': tx[2],
+                'transaction_type': tx[3],
+                'note': tx[4],
+                'added_by': tx[5],
+                'created_at': tx[6]
+            }
+            for tx in transactions
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting transactions for user {username}: {str(e)}")
+        return []
+
+def get_all_currency_transactions(limit=100, offset=0, username_filter=None):
+    """
+    Get all currency transactions (admin function).
+    
+    Args:
+        limit (int): Maximum number of transactions to return
+        offset (int): Number of transactions to skip (for pagination)
+        username_filter (str): Optional username to filter by
+        
+    Returns:
+        list: List of transaction dictionaries
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        if username_filter:
+            c.execute('''
+                SELECT id, username, amount, transaction_type, note, added_by, created_at
+                FROM currency_transactions 
+                WHERE username = ?
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            ''', (username_filter, limit, offset))
+        else:
+            c.execute('''
+                SELECT id, username, amount, transaction_type, note, added_by, created_at
+                FROM currency_transactions 
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            ''', (limit, offset))
+        
+        transactions = c.fetchall()
+        conn.close()
+        
+        return [
+            {
+                'id': tx[0],
+                'username': tx[1],
+                'amount': tx[2],
+                'transaction_type': tx[3],
+                'note': tx[4],
+                'added_by': tx[5],
+                'created_at': tx[6]
+            }
+            for tx in transactions
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting all currency transactions: {str(e)}")
+        return []
+
+def get_currency_transaction_count(username=None):
+    """
+    Get the total count of currency transactions.
+    
+    Args:
+        username (str): Optional username to filter by
+        
+    Returns:
+        int: Total number of transactions
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        if username:
+            c.execute('SELECT COUNT(*) FROM currency_transactions WHERE username = ?', (username,))
+        else:
+            c.execute('SELECT COUNT(*) FROM currency_transactions')
+        
+        count = c.fetchone()[0]
+        conn.close()
+        
+        return count
+        
+    except Exception as e:
+        logger.error(f"Error getting transaction count: {str(e)}")
+        return 0
+
 # Initialize orders table on import
 create_orders_table()

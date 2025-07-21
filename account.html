@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Account - NESOP Store</title>
+  <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    .account-container { 
+      max-width: 900px; 
+      margin: 40px auto; 
+      background: var(--color-card-bg); 
+      border-radius: var(--border-radius-base); 
+      box-shadow: 0 2px 8px var(--color-shadow); 
+      padding: 2rem; 
+      transition: background-color 0.3s ease; 
+    }
+    .account-container h2 { 
+      color: #1976d2; 
+      margin-top: 0; 
+    }
+    .balance-display {
+      background: var(--color-border-light);
+      border: 2px solid #1976d2;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      transition: background-color 0.3s ease;
+    }
+    .balance-amount {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #1976d2;
+      margin: 0;
+    }
+    .balance-label {
+      font-size: 1.2rem;
+      color: var(--color-fg);
+      margin: 0.5rem 0 0 0;
+      transition: color 0.3s ease;
+    }
+    .transaction-section {
+      margin-top: 2rem;
+    }
+    .transaction-table { 
+      border-collapse: collapse; 
+      width: 100%; 
+      margin-bottom: 1rem; 
+    }
+    .transaction-table th, .transaction-table td { 
+      padding: 0.75rem; 
+      border: 1px solid var(--color-border); 
+      transition: border-color 0.3s ease; 
+    }
+    .transaction-table th { 
+      background: var(--color-table-header); 
+      color: #1976d2; 
+      font-weight: bold; 
+      transition: background-color 0.3s ease; 
+    }
+    .transaction-table td { 
+      background: var(--color-card-bg); 
+      color: var(--color-fg); 
+      transition: background-color 0.3s ease, color 0.3s ease; 
+    }
+    .scrollable-container {
+      max-height: 500px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      scrollbar-width: thin;
+      scrollbar-color: #1976d2 var(--color-border-light);
+    }
+    .scrollable-container::-webkit-scrollbar {
+      width: 8px;
+      background: var(--color-border-light);
+    }
+    .scrollable-container::-webkit-scrollbar-thumb {
+      background: #1976d2;
+      border-radius: 6px;
+    }
+    .scrollable-container::-webkit-scrollbar-thumb:hover {
+      background: #125ea7;
+    }
+    .transaction-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--color-table-header);
+      transition: background-color 0.3s ease;
+    }
+    .amount-positive {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    .amount-negative {
+      color: #e57373;
+      font-weight: bold;
+    }
+    .transaction-type {
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .type-admin-add {
+      background: var(--color-info-bg, #2196f3);
+      color: white;
+    }
+    .type-bulk-add {
+      background: var(--color-success-bg, #4caf50);
+      color: white;
+    }
+    .type-initial-balance {
+      background: var(--color-warning-bg, #ff9800);
+      color: white;
+    }
+    .type-purchase {
+      background: var(--color-error-bg, #f44336);
+      color: white;
+    }
+    .note-cell {
+      max-width: 250px;
+      word-wrap: break-word;
+      font-style: italic;
+    }
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    .pagination button {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .pagination button:hover {
+      background: #125ea7;
+    }
+    .pagination button:disabled {
+      background: #b3c6e0;
+      cursor: not-allowed;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .page-nav-btn {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: var(--border-radius-base);
+      padding: 0.75rem 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background 0.2s;
+      font-size: 1rem;
+    }
+    .page-nav-btn:hover {
+      background: #125ea7;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: var(--color-fg);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <header class="store-header">
+    <div class="container">
+      <div style="display: flex; justify-content: center; align-items: center; width: 60px; height: 60px; background-color: #fff; border-radius: 50%; margin: 0; padding: 0;">
+        <img src="assets/images/nesop-logo.png" alt="NESOP Logo" class="nesop-logo" style="width: 40px; height: 40px; margin: 0; padding: 0;">
+      </div>
+      <div class="user-info" style="display: flex; justify-content: center; align-items: center; flex-direction: row; margin-top: 0.5rem; margin-bottom: 0.5rem; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; margin-left: 2rem;">
+          <span id="account-welcome" style="font-size:1.25em; margin-left: 0; padding-left: 0;"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button 
+            type="button" 
+            data-theme-toggle 
+            aria-label="Change theme"
+            class="theme-toggle-btn"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+          <button onclick="window.location.href='index.html'" class="logout-btn">Back to Store</button>
+          <button id="logout-btn" class="logout-btn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="account-container">
+    <h2>My Account</h2>
+    
+    <!-- Balance Display -->
+    <div class="balance-display">
+      <p class="balance-amount" id="user-balance">€0.00</p>
+      <p class="balance-label">Current Balance</p>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-buttons">
+      <a href="index.html" class="page-nav-btn">Browse Store</a>
+      <a href="cart.html" class="page-nav-btn">Shopping Cart</a>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="transaction-section">
+      <h3 style="color: #1976d2;">Transaction History</h3>
+      <p style="color: var(--color-fg); margin-bottom: 1.5rem;">View all your currency additions and spending history.</p>
+      
+      <div class="scrollable-container">
+        <table class="transaction-table">
+          <thead>
+            <tr>
+              <th>Date/Time</th>
+              <th>Amount</th>
+              <th>Type</th>
+              <th>Note</th>
+              <th>Added By</th>
+            </tr>
+          </thead>
+          <tbody id="transaction-history-tbody">
+            <!-- Transaction rows will be populated here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div id="transaction-empty-state" class="empty-state" style="display: none;">
+        <p>No transactions found.</p>
+        <p>Currency additions and other account activities will appear here.</p>
+      </div>
+      
+      <div id="transaction-pagination" class="pagination"></div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let currentUser = '';
+    let currentOffset = 0;
+    const transactionLimit = 20;
+
+    // Utility function to extract username
+    function extractUsername(fullUsername) {
+      if (!fullUsername) return '';
+      return fullUsername.includes('\\') ? fullUsername.split('\\')[1] : fullUsername;
+    }
+
+    // Utility to capitalize first letter
+    function capitalizeFirstLetter(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+      currentUser = localStorage.getItem('nesop_user') || '';
+      
+      if (!currentUser) {
+        alert('Please log in first.');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Set welcome message
+      const displayUsername = extractUsername(currentUser);
+      document.getElementById('account-welcome').innerHTML = `Account for <b style="text-transform:capitalize;">${capitalizeFirstLetter(displayUsername)}</b>`;
+
+      // Setup logout button
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) {
+        logoutBtn.onclick = function() {
+          localStorage.removeItem('nesop_user');
+          localStorage.removeItem('nesop_user_admin');
+          window.location.href = 'index.html';
+        };
+      }
+
+      // Load account data
+      loadUserBalance();
+      loadTransactionHistory();
+    });
+
+    // Load user balance
+    function loadUserBalance() {
+      fetch('/api/users')
+        .then(res => res.json())
+        .then(data => {
+          const user = (data.users || []).find(u => u.username === currentUser);
+          if (user) {
+            document.getElementById('user-balance').textContent = `€${parseFloat(user.balance).toFixed(2)}`;
+          } else {
+            document.getElementById('user-balance').textContent = '€0.00';
+          }
+        })
+        .catch(error => {
+          console.error('Error loading user balance:', error);
+          document.getElementById('user-balance').textContent = '€0.00';
+        });
+    }
+
+    // Load transaction history
+    function loadTransactionHistory(offset = 0) {
+      currentOffset = offset;
+      
+      const url = `/api/users/${encodeURIComponent(currentUser)}/transactions?requesting_user=${encodeURIComponent(currentUser)}&limit=${transactionLimit}&offset=${offset}`;
+      
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            renderTransactionHistory(data.transactions);
+            renderPagination(data.total_count, data.offset, data.limit);
+          } else {
+            console.error('Error loading transactions:', data.error);
+            showEmptyState();
+          }
+        })
+        .catch(error => {
+          console.error('Error loading transaction history:', error);
+          showEmptyState();
+        });
+    }
+
+    // Render transaction history table
+    function renderTransactionHistory(transactions) {
+      const tbody = document.getElementById('transaction-history-tbody');
+      const emptyState = document.getElementById('transaction-empty-state');
+      
+      if (!transactions || transactions.length === 0) {
+        showEmptyState();
+        return;
+      }
+
+      // Hide empty state and show table
+      emptyState.style.display = 'none';
+      tbody.parentElement.parentElement.style.display = 'block';
+
+      let html = '';
+      transactions.forEach(tx => {
+        const date = new Date(tx.created_at).toLocaleString();
+        const amount = parseFloat(tx.amount);
+        const amountClass = amount >= 0 ? 'amount-positive' : 'amount-negative';
+        const amountDisplay = `${amount >= 0 ? '+' : ''}€${Math.abs(amount).toFixed(2)}`;
+        const typeDisplay = tx.transaction_type.replace('_', ' ').toUpperCase();
+        const typeClass = `type-${tx.transaction_type}`;
+
+        html += `
+          <tr>
+            <td>${date}</td>
+            <td class="${amountClass}">${amountDisplay}</td>
+            <td><span class="transaction-type ${typeClass}">${typeDisplay}</span></td>
+            <td class="note-cell">${tx.note || '-'}</td>
+            <td>${tx.added_by}</td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    // Show empty state
+    function showEmptyState() {
+      const emptyState = document.getElementById('transaction-empty-state');
+      const tbody = document.getElementById('transaction-history-tbody');
+      
+      tbody.innerHTML = '';
+      tbody.parentElement.parentElement.style.display = 'none';
+      emptyState.style.display = 'block';
+      
+      // Clear pagination
+      document.getElementById('transaction-pagination').innerHTML = '';
+    }
+
+    // Render pagination
+    function renderPagination(totalCount, offset, limit) {
+      const paginationDiv = document.getElementById('transaction-pagination');
+      
+      if (totalCount <= limit) {
+        paginationDiv.innerHTML = '';
+        return;
+      }
+
+      const currentPage = Math.floor(offset / limit) + 1;
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      let html = '';
+      
+      // Previous button
+      if (currentPage > 1) {
+        html += `<button onclick="loadTransactionHistory(${(currentPage - 2) * limit})">← Previous</button>`;
+      } else {
+        html += `<button disabled>← Previous</button>`;
+      }
+      
+      // Page info
+      html += `<span>Page ${currentPage} of ${totalPages} (${totalCount} total)</span>`;
+      
+      // Next button
+      if (currentPage < totalPages) {
+        html += `<button onclick="loadTransactionHistory(${currentPage * limit})">Next →</button>`;
+      } else {
+        html += `<button disabled>Next →</button>`;
+      }
+      
+      paginationDiv.innerHTML = html;
+    }
+  </script>
+  <script src="scripts/utils.js"></script>
+</body>
+</html> 

@@ -202,6 +202,10 @@
       background: var(--color-warning-bg, #ff9800);
       color: white;
     }
+    .type-purchase {
+      background: var(--color-error-bg, #f44336);
+      color: white;
+    }
     .admin-input {
       padding: 0.5rem;
       border: 1px solid var(--color-border);
@@ -261,14 +265,61 @@
       <div id="ad-users-table"></div>
       <div id="ad-search-message" class="admin-message" style="margin-top: 1rem;"></div>
     </div>
-    <!-- Add Currency to All Users Form -->
-    <div class="admin-section" style="margin-bottom:1.5rem;">
-      <h3>Add Currency to All Users</h3>
-      <form id="add-currency-form" style="display:flex;align-items:center;gap:1em;">
-        <input type="number" id="add-currency-amount" class="admin-input" placeholder="Amount" step="1" required />
-        <button type="submit" class="admin-btn">Add to All Users</button>
-      </form>
-      <div id="add-currency-message" class="admin-message"></div>
+    <!-- Currency Management Section -->
+    <div class="admin-section" style="margin-bottom:2rem;">
+      <h3>Currency Management</h3>
+      
+      <!-- Add Currency to Individual User -->
+      <div style="margin-bottom:2rem; padding:1rem; border:1px solid var(--color-border); border-radius:4px;">
+        <h4 style="margin-top:0; color: #1976d2;">Add Currency to Individual User</h4>
+        <div style="display:flex;align-items:end;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <label for="individual-user-select" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Select User:</label>
+            <select id="individual-user-select" class="admin-input" style="width:150px;">
+              <option value="">Select user...</option>
+            </select>
+          </div>
+          <div>
+            <label for="individual-currency-amount" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Amount (€):</label>
+            <input type="number" id="individual-currency-amount" class="admin-input" placeholder="Amount" step="0.01" style="width:100px;" />
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <label for="individual-currency-note" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Note:</label>
+            <input type="text" id="individual-currency-note" class="admin-input" placeholder="Reason for currency addition..." style="width:100%;" />
+          </div>
+          <button type="button" class="admin-btn" onclick="addCurrencyToIndividualUser()">Add Currency</button>
+        </div>
+        <div id="individual-currency-message" class="admin-message" style="margin-top:0.5rem;"></div>
+      </div>
+
+      <!-- Add Currency to All Users -->
+      <div style="margin-bottom:2rem; padding:1rem; border:1px solid var(--color-border); border-radius:4px;">
+        <h4 style="margin-top:0; color: #1976d2;">Add Currency to All Users</h4>
+        <div style="display:flex;align-items:end;gap:1rem;flex-wrap:wrap;">
+          <div>
+            <label for="bulk-currency-amount" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Amount (€):</label>
+            <input type="number" id="bulk-currency-amount" class="admin-input" placeholder="Amount" step="0.01" style="width:100px;" />
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <label for="bulk-currency-note" style="display:block;margin-bottom:0.3rem;font-weight:bold;color:#1976d2;">Note:</label>
+            <input type="text" id="bulk-currency-note" class="admin-input" placeholder="Reason for bulk currency addition..." style="width:100%;" />
+          </div>
+          <button type="button" class="admin-btn" onclick="addCurrencyToAllUsers()">Add to All Users</button>
+        </div>
+        <div id="bulk-currency-message" class="admin-message" style="margin-top:0.5rem;"></div>
+      </div>
+    </div>
+
+    <!-- Transaction History Section -->
+    <div class="admin-section" style="margin-bottom:2rem;">
+      <h3>Transaction History</h3>
+      <div style="display:flex;gap:1rem;margin-bottom:1rem;align-items:center;">
+        <input type="text" id="transaction-filter-username" class="admin-input" placeholder="Filter by username..." style="width:150px;">
+        <button class="admin-btn" onclick="loadTransactionHistory()">Refresh</button>
+        <button class="admin-btn" onclick="clearTransactionFilter()">Clear Filter</button>
+      </div>
+      <div id="transaction-history-table"></div>
+      <div id="transaction-pagination" style="margin-top:1rem;text-align:center;"></div>
     </div>
     <div class="admin-section">
       <h3>Items</h3>
@@ -296,42 +347,8 @@
           window.location.href = 'index.html';
         };
       }
-      // Add Currency to All Users form handler
-      const addCurrencyForm = document.getElementById('add-currency-form');
-      if (addCurrencyForm) {
-        addCurrencyForm.onsubmit = function(e) {
-          e.preventDefault();
-          const amount = parseFloat(document.getElementById('add-currency-amount').value);
-          const messageDiv = document.getElementById('add-currency-message');
-          messageDiv.textContent = '';
-          if (isNaN(amount)) {
-            messageDiv.textContent = 'Please enter a valid amount.';
-            messageDiv.style.color = '#e57373';
-            return;
-          }
-          const username = localStorage.getItem('nesop_user');
-          fetch('/api/users/add-currency', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, amount })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              messageDiv.textContent = `Added €${amount} to all users. (${data.updated} users updated)`;
-              messageDiv.style.color = '#388e3c';
-              fetchUsers();
-            } else {
-              messageDiv.textContent = data.error || 'Failed to add currency.';
-              messageDiv.style.color = '#e57373';
-            }
-          })
-          .catch(() => {
-            messageDiv.textContent = 'Failed to add currency.';
-            messageDiv.style.color = '#e57373';
-          });
-        };
-      }
+      // Initialize currency management
+      loadTransactionHistory();
     });
     
     // Check if user is admin
@@ -603,6 +620,18 @@
     function fetchUsers() {
       fetch('/api/users').then(res => res.json()).then(data => {
         renderUsersTable(data.users || []);
+        
+        // Populate individual user dropdown
+        const userSelect = document.getElementById('individual-user-select');
+        if (userSelect) {
+          userSelect.innerHTML = '<option value="">Select user...</option>';
+          (data.users || []).forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.username;
+            option.textContent = `${user.username} (€${user.balance})`;
+            userSelect.appendChild(option);
+          });
+        }
       });
     }
     function renderUsersTable(users) {
@@ -910,6 +939,246 @@
         // Hide AD section by default if we can't get config
         document.getElementById('ad-users-section').style.display = 'none';
       });
+
+    // --- Currency Management Functions ---
+    
+    function addCurrencyToIndividualUser() {
+      const targetUsername = document.getElementById('individual-user-select').value;
+      const amount = parseFloat(document.getElementById('individual-currency-amount').value);
+      const note = document.getElementById('individual-currency-note').value.trim();
+      const messageDiv = document.getElementById('individual-currency-message');
+      const adminUsername = localStorage.getItem('nesop_user');
+      
+      // Clear previous messages
+      messageDiv.textContent = '';
+      
+      // Validation
+      if (!targetUsername) {
+        messageDiv.textContent = 'Please select a user.';
+        messageDiv.style.color = '#e57373';
+        return;
+      }
+      
+      if (isNaN(amount) || amount === 0) {
+        messageDiv.textContent = 'Please enter a valid amount.';
+        messageDiv.style.color = '#e57373';
+        return;
+      }
+      
+      if (!note) {
+        messageDiv.textContent = 'Please enter a note explaining the currency addition.';
+        messageDiv.style.color = '#e57373';
+        return;
+      }
+      
+      // Call API
+      fetch('/api/users/add-currency-with-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          admin_username: adminUsername,
+          username: targetUsername, 
+          amount: amount, 
+          note: note 
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          messageDiv.textContent = `Added €${amount} to ${targetUsername}. New balance: €${data.new_balance}`;
+          messageDiv.style.color = '#4caf50';
+          
+          // Clear form
+          document.getElementById('individual-currency-amount').value = '';
+          document.getElementById('individual-currency-note').value = '';
+          document.getElementById('individual-user-select').value = '';
+          
+          // Refresh data
+          fetchUsers();
+          loadTransactionHistory();
+        } else {
+          messageDiv.textContent = data.error || 'Failed to add currency.';
+          messageDiv.style.color = '#e57373';
+        }
+      })
+      .catch(error => {
+        console.error('Error adding currency:', error);
+        messageDiv.textContent = 'Failed to add currency.';
+        messageDiv.style.color = '#e57373';
+      });
+    }
+    
+    function addCurrencyToAllUsers() {
+      const amount = parseFloat(document.getElementById('bulk-currency-amount').value);
+      const note = document.getElementById('bulk-currency-note').value.trim();
+      const messageDiv = document.getElementById('bulk-currency-message');
+      const adminUsername = localStorage.getItem('nesop_user');
+      
+      // Clear previous messages
+      messageDiv.textContent = '';
+      
+      // Validation
+      if (isNaN(amount) || amount === 0) {
+        messageDiv.textContent = 'Please enter a valid amount.';
+        messageDiv.style.color = '#e57373';
+        return;
+      }
+      
+      if (!note) {
+        messageDiv.textContent = 'Please enter a note explaining the bulk currency addition.';
+        messageDiv.style.color = '#e57373';
+        return;
+      }
+      
+      // Confirm action
+      if (!confirm(`Are you sure you want to add €${amount} to all users?\\nNote: ${note}`)) {
+        return;
+      }
+      
+      // Call API
+      fetch('/api/users/add-currency-bulk-with-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          admin_username: adminUsername,
+          amount: amount, 
+          note: note 
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          messageDiv.textContent = `Added €${amount} to all users. ${data.updated} users updated, ${data.transaction_count} transactions created.`;
+          messageDiv.style.color = '#4caf50';
+          
+          // Clear form
+          document.getElementById('bulk-currency-amount').value = '';
+          document.getElementById('bulk-currency-note').value = '';
+          
+          // Refresh data
+          fetchUsers();
+          loadTransactionHistory();
+        } else {
+          messageDiv.textContent = data.error || 'Failed to add currency.';
+          messageDiv.style.color = '#e57373';
+        }
+      })
+      .catch(error => {
+        console.error('Error adding bulk currency:', error);
+        messageDiv.textContent = 'Failed to add currency.';
+        messageDiv.style.color = '#e57373';
+      });
+    }
+    
+    // Transaction History Management
+    let currentTransactionOffset = 0;
+    const transactionLimit = 20;
+    
+    function loadTransactionHistory(offset = 0) {
+      const adminUsername = localStorage.getItem('nesop_user');
+      const usernameFilter = document.getElementById('transaction-filter-username').value.trim();
+      
+      currentTransactionOffset = offset;
+      
+      let url = `/api/admin/transactions?requesting_user=${encodeURIComponent(adminUsername)}&limit=${transactionLimit}&offset=${offset}`;
+      if (usernameFilter) {
+        url += `&username_filter=${encodeURIComponent(usernameFilter)}`;
+      }
+      
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            renderTransactionHistoryTable(data.transactions);
+            renderTransactionPagination(data.total_count, data.offset, data.limit);
+          } else {
+            document.getElementById('transaction-history-table').innerHTML = `<p style="color:#e57373;">Error loading transactions: ${data.error}</p>`;
+          }
+        })
+        .catch(error => {
+          console.error('Error loading transaction history:', error);
+          document.getElementById('transaction-history-table').innerHTML = '<p style="color:#e57373;">Failed to load transaction history.</p>';
+        });
+    }
+    
+    function renderTransactionHistoryTable(transactions) {
+      if (!transactions || transactions.length === 0) {
+        document.getElementById('transaction-history-table').innerHTML = '<p>No transactions found.</p>';
+        return;
+      }
+      
+      let html = `
+        <div class="scrollable-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Date/Time</th>
+                <th>Username</th>
+                <th>Amount (€)</th>
+                <th>Type</th>
+                <th>Note</th>
+                <th>Added By</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      
+      transactions.forEach(tx => {
+        const date = new Date(tx.created_at).toLocaleString();
+        const amountClass = tx.amount >= 0 ? 'style="color:#4caf50;"' : 'style="color:#e57373;"';
+        const typeDisplay = tx.transaction_type.replace('_', ' ').toUpperCase();
+        
+        html += `
+          <tr>
+            <td>${date}</td>
+            <td><strong>${tx.username}</strong></td>
+            <td ${amountClass}>${tx.amount >= 0 ? '+' : ''}€${tx.amount.toFixed(2)}</td>
+            <td>${typeDisplay}</td>
+            <td style="max-width:200px;word-wrap:break-word;">${tx.note || '-'}</td>
+            <td>${tx.added_by}</td>
+          </tr>
+        `;
+      });
+      
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      document.getElementById('transaction-history-table').innerHTML = html;
+    }
+    
+    function renderTransactionPagination(totalCount, offset, limit) {
+      const currentPage = Math.floor(offset / limit) + 1;
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      let html = `<div style="display:flex;align-items:center;gap:1rem;justify-content:center;">`;
+      
+      // Previous button
+      if (currentPage > 1) {
+        html += `<button class="admin-btn" onclick="loadTransactionHistory(${(currentPage - 2) * limit})">← Previous</button>`;
+      }
+      
+      // Page info
+      html += `<span>Page ${currentPage} of ${totalPages} (${totalCount} total transactions)</span>`;
+      
+      // Next button
+      if (currentPage < totalPages) {
+        html += `<button class="admin-btn" onclick="loadTransactionHistory(${currentPage * limit})">Next →</button>`;
+      }
+      
+      html += `</div>`;
+      
+      document.getElementById('transaction-pagination').innerHTML = html;
+    }
+    
+    function clearTransactionFilter() {
+      document.getElementById('transaction-filter-username').value = '';
+      loadTransactionHistory(0);
+    }
+    
+
   </script>
   <script src="scripts/utils.js"></script>
 </body>
