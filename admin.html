@@ -315,8 +315,9 @@
       <h3>Transaction History</h3>
       <div style="display:flex;gap:1rem;margin-bottom:1rem;align-items:center;">
         <input type="text" id="transaction-filter-username" class="admin-input" placeholder="Filter by username..." style="width:150px;">
-        <button class="admin-btn" onclick="loadTransactionHistory()">Refresh</button>
+        <button class="admin-btn" onclick="loadTransactionHistory()">Search</button>
         <button class="admin-btn" onclick="clearTransactionFilter()">Clear Filter</button>
+        <button class="admin-btn" onclick="clearTransactionHistory()" style="background: #f44336;">Clear History</button>
       </div>
       <div id="transaction-history-table"></div>
       <div id="transaction-pagination" style="margin-top:1rem;text-align:center;"></div>
@@ -1176,6 +1177,51 @@
     function clearTransactionFilter() {
       document.getElementById('transaction-filter-username').value = '';
       loadTransactionHistory(0);
+    }
+    
+    function clearTransactionHistory() {
+      const adminUsername = localStorage.getItem('nesop_user');
+      
+      // Get current transaction count for confirmation message
+      fetch(`/api/admin/transactions?requesting_user=${encodeURIComponent(adminUsername)}&limit=1&offset=0`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.total_count > 0) {
+            const confirmMessage = `Are you sure you want to clear ALL transaction history?\n\nThis will permanently delete ${data.total_count} transaction records and cannot be undone.\n\nType "DELETE" to confirm:`;
+            const userInput = prompt(confirmMessage);
+            
+            if (userInput === 'DELETE') {
+              // Proceed with clearing transactions
+              fetch('/api/admin/transactions/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_username: adminUsername })
+              })
+              .then(res => res.json())
+              .then(result => {
+                if (result.success) {
+                  alert(`Transaction history cleared successfully!\n${result.deleted_count} records were deleted.`);
+                  // Refresh the transaction table to show empty state
+                  loadTransactionHistory(0);
+                } else {
+                  alert(`Failed to clear transaction history: ${result.error || 'Unknown error'}`);
+                }
+              })
+              .catch(error => {
+                console.error('Error clearing transaction history:', error);
+                alert('Error clearing transaction history. Please try again.');
+              });
+            }
+          } else if (data.success && data.total_count === 0) {
+            alert('No transaction history to clear.');
+          } else {
+            alert('Unable to check transaction count. Please try again.');
+          }
+        })
+        .catch(error => {
+          console.error('Error checking transaction count:', error);
+          alert('Error checking transaction count. Please try again.');
+        });
     }
     
 

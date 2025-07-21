@@ -64,7 +64,8 @@ def create_update_package(version=None, include_files=None, include_migrations=T
         'index.html',
         'admin.html',
         'cart.html',
-        'register.html'
+        'register.html',
+        'account.html'
     ]
     
     # Migration files to include

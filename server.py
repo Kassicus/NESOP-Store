@@ -120,21 +120,25 @@ def place_order():
         }
         
         # Send email notification to fulfillment team
-        email_sent = email_utils.send_order_notification(fulfillment_email, order_details)
+        fulfillment_email_sent = email_utils.send_order_notification(fulfillment_email, order_details)
         
-        # Mark email as sent if successful
-        if email_sent:
+        # Send order confirmation email to the user
+        user_email_sent = email_utils.send_user_order_confirmation(username, order_details)
+        
+        # Mark email as sent if fulfillment email successful
+        if fulfillment_email_sent:
             db_utils.mark_email_sent(order_id)
         
         # Log order completion
-        logging.info(f"Order {order_id} placed successfully for user {username}, total: ₦{total}, fulfillment notification sent: {email_sent}")
+        logging.info(f"Order {order_id} placed successfully for user {username}, total: ₦{total}, fulfillment notification sent: {fulfillment_email_sent}, user notification sent: {user_email_sent}")
         
         return jsonify({
             'success': True,
             'order_id': order_id,
             'new_balance': new_balance,
-            'email_sent': email_sent,
-            'message': f'Order placed successfully! Fulfillment team {"notified" if email_sent else "notification failed"}'
+            'email_sent': fulfillment_email_sent,
+            'user_email_sent': user_email_sent,
+            'message': f'Order placed successfully! Fulfillment team {"notified" if fulfillment_email_sent else "notification failed"}, user {"notified" if user_email_sent else "notification failed"}'
         })
         
     except Exception as e:
@@ -758,6 +762,40 @@ def get_all_transactions_route():
         'offset': offset,
         'username_filter': username_filter
     })
+
+@app.route('/api/admin/transactions/clear', methods=['POST'])
+def clear_all_transactions_route():
+    """Clear all currency transaction history (admin only)"""
+    data = request.get_json()
+    requesting_user = data.get('admin_username') if data else None
+    
+    if not requesting_user or not db_utils.is_admin(requesting_user):
+        logging.warning(f"Unauthorized transaction clear attempt by {requesting_user}")
+        return jsonify({'error': 'Admin privileges required.'}), 403
+    
+    # Get current transaction count before clearing
+    total_count = db_utils.get_currency_transaction_count()
+    
+    if total_count == 0:
+        return jsonify({
+            'success': True, 
+            'deleted_count': 0, 
+            'message': 'No transactions to clear.'
+        })
+    
+    # Clear all transactions
+    result = db_utils.clear_all_currency_transactions(requesting_user)
+    
+    if result['success']:
+        logging.info(f"Admin {requesting_user} cleared all currency transactions. {result['deleted_count']} records deleted.")
+        return jsonify({
+            'success': True,
+            'deleted_count': result['deleted_count'],
+            'message': f"Successfully cleared {result['deleted_count']} transaction records."
+        })
+    else:
+        logging.error(f"Failed to clear transactions for admin {requesting_user}: {result.get('error')}")
+        return jsonify({'error': result.get('error', 'Failed to clear transactions')}), 500
 
 # --- Item Management (Admin) ---
 @app.route('/api/items', methods=['GET'])

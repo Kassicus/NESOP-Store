@@ -45,9 +45,32 @@ def add_user(username, password, balance, is_admin=0):
 def update_balance(username, new_balance):
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # Get current balance first for email notification
+    c.execute('SELECT balance FROM users WHERE username = ?', (username,))
+    user = c.fetchone()
+    old_balance = user[0] if user else 0
+    
     c.execute('UPDATE users SET balance = ? WHERE username = ?', (new_balance, username))
     conn.commit()
     conn.close()
+    
+    # Send balance change notification email to user
+    if user:  # Only send if user exists
+        try:
+            import email_utils
+            amount_change = new_balance - old_balance
+            if amount_change != 0:  # Only notify if balance actually changed
+                email_sent = email_utils.send_balance_change_notification(
+                    username=username,
+                    amount=amount_change,
+                    new_balance=new_balance,
+                    transaction_type='admin_update',
+                    note='Balance updated by administrator'
+                )
+                logger.info(f"Balance update notification email sent to {username}: {email_sent}")
+        except Exception as e:
+            logger.warning(f"Failed to send balance update notification email to {username}: {str(e)}")
 
 def get_all_users():
     conn = get_db_connection()
@@ -352,11 +375,40 @@ def add_currency_to_all_users(amount):
     """
     conn = get_db_connection()
     c = conn.cursor()
+    
+    # Get all active users first for email notifications
+    c.execute('SELECT username, balance FROM users WHERE is_active = 1')
+    users = c.fetchall()
+    
     c.execute('UPDATE users SET balance = balance + ?', (amount,))
     updated = c.rowcount
     conn.commit()
     conn.close()
     logger.info(f"Added {amount} to all user balances. {updated} users updated.")
+    
+    # Send balance change notification emails to all affected users
+    email_success_count = 0
+    try:
+        import email_utils
+        for username, old_balance in users:
+            new_user_balance = old_balance + amount
+            try:
+                email_sent = email_utils.send_balance_change_notification(
+                    username=username,
+                    amount=amount,
+                    new_balance=new_user_balance,
+                    transaction_type='bulk_add',
+                    note='Bulk currency addition by administrator'
+                )
+                if email_sent:
+                    email_success_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to send balance change notification email to {username}: {str(e)}")
+        
+        logger.info(f"Balance change notification emails sent successfully to {email_success_count}/{updated} users")
+    except Exception as e:
+        logger.warning(f"Failed to import email_utils for bulk notifications: {str(e)}")
+    
     return updated
 
 def update_ad_sync_timestamp(username: str) -> bool:
@@ -654,6 +706,20 @@ def add_currency_with_transaction_log(username, amount, transaction_type, note, 
         
         logger.info(f"Added {amount} to {username} balance. New balance: {new_balance}. Transaction ID: {transaction_id}")
         
+        # Send balance change notification email to user
+        try:
+            import email_utils
+            email_sent = email_utils.send_balance_change_notification(
+                username=username,
+                amount=amount,
+                new_balance=new_balance,
+                transaction_type=transaction_type,
+                note=note
+            )
+            logger.info(f"Balance change notification email sent to {username}: {email_sent}")
+        except Exception as e:
+            logger.warning(f"Failed to send balance change notification email to {username}: {str(e)}")
+        
         return {
             'success': True,
             'new_balance': new_balance,
@@ -716,6 +782,29 @@ def add_currency_to_all_users_with_note(amount, note, added_by):
         conn.close()
         
         logger.info(f"Added {amount} to {updated_count} users. Created {len(transaction_ids)} transaction records.")
+        
+        # Send balance change notification emails to all affected users
+        email_success_count = 0
+        try:
+            import email_utils
+            for username, old_balance in users:
+                new_user_balance = old_balance + amount
+                try:
+                    email_sent = email_utils.send_balance_change_notification(
+                        username=username,
+                        amount=amount,
+                        new_balance=new_user_balance,
+                        transaction_type='bulk_add',
+                        note=note
+                    )
+                    if email_sent:
+                        email_success_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to send balance change notification email to {username}: {str(e)}")
+            
+            logger.info(f"Balance change notification emails sent successfully to {email_success_count}/{updated_count} users")
+        except Exception as e:
+            logger.warning(f"Failed to import email_utils for bulk notifications: {str(e)}")
         
         return {
             'success': True,
@@ -855,6 +944,50 @@ def get_currency_transaction_count(username=None):
     except Exception as e:
         logger.error(f"Error getting transaction count: {str(e)}")
         return 0
+
+def clear_all_currency_transactions(admin_username):
+    """
+    Clear all currency transaction history (admin only operation).
+    
+    Args:
+        admin_username (str): Username of the admin performing the operation
+        
+    Returns:
+        dict: {'success': bool, 'deleted_count': int, 'error': str}
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # First, get count of transactions to be deleted
+        c.execute('SELECT COUNT(*) FROM currency_transactions')
+        total_count = c.fetchone()[0]
+        
+        if total_count == 0:
+            conn.close()
+            return {'success': True, 'deleted_count': 0}
+        
+        # Delete all transactions
+        c.execute('DELETE FROM currency_transactions')
+        deleted_count = c.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Admin {admin_username} cleared all currency transactions. {deleted_count} records deleted.")
+        
+        return {
+            'success': True,
+            'deleted_count': deleted_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error clearing currency transactions: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e),
+            'deleted_count': 0
+        }
 
 # Initialize orders table on import
 create_orders_table()
