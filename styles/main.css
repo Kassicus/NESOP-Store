@@ -103,6 +103,7 @@ body {
   background: #125ea7;
 }
 
+/* Theme toggle button styling */
 .theme-toggle-btn {
   background: rgba(255,255,255,0.18);
   color: #fff;
@@ -129,6 +130,51 @@ body {
 }
 .theme-toggle-btn.register-page:hover {
   background: #125ea7;
+}
+
+/* Cart and Account buttons with matching theme toggle styling */
+.header-icon-btn {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-right: 0.5rem;
+  text-decoration: none;
+  position: relative;
+}
+.header-icon-btn:hover {
+  background: #125ea7;
+}
+.header-icon-btn:visited, .header-icon-btn:active {
+  color: #fff;
+}
+
+/* Override the old cart-link styles when using header-icon-btn class */
+.header-icon-btn .cart-icon {
+  filter: brightness(0) invert(1);
+}
+
+/* Cart count badge positioning for new button style */
+.header-icon-btn .cart-count-badge {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  color: #fff;
+  background: #f27a12;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-align: center;
+  display: none;
 }
 
 .product-grid {
@@ -213,33 +259,10 @@ body {
   background: #125ea7;
 }
 
-.cart-link {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-right: 1rem;
-  text-decoration: none;
-  color: #fff;
-}
-.cart-link:visited, .cart-link:active {
-  color: #fff;
-}
+/* Legacy cart-link styles - kept minimal for any remaining usage */
 .cart-icon {
   display: block;
   filter: brightness(0) invert(1);
-}
-.cart-count-badge {
-  position: absolute;
-  top: -6px;
-  right: -5px;
-  color: #fff;
-  background: #f27a12;
-  border-radius: 50%;
-  padding: 0 6px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  text-align: center;
-  display: none;
 }
 
 @media (max-width: 700px) {

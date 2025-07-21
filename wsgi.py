@@ -77,11 +77,34 @@ try:
     
     app.config['UPLOAD_FOLDER'] = upload_path
     
-    # Ensure upload directory exists
+    # Ensure upload directory exists with proper permissions
     os.makedirs(upload_path, exist_ok=True)
     
     # Log startup information
     logger = logging.getLogger(__name__)
+    
+    # Set proper permissions for upload directory (readable and writable by group)
+    try:
+        import stat
+        import grp
+        import pwd
+        
+        # Set directory permissions to 775 (owner: rwx, group: rwx, others: r-x)
+        os.chmod(upload_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+        
+        # Try to set group ownership to www-data if it exists
+        try:
+            www_data_gid = grp.getgrnam('www-data').gr_gid
+            os.chown(upload_path, -1, www_data_gid)  # -1 means don't change owner, only group
+            logger.info(f"Set upload directory group to www-data: {upload_path}")
+        except (KeyError, OSError) as e:
+            # If www-data group doesn't exist, try to make it writable by all
+            os.chmod(upload_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+            logger.warning(f"Could not set www-data group ownership, made directory world-writable: {e}")
+            
+    except Exception as e:
+        logger.error(f"Could not set upload directory permissions: {e}")
+        logger.warning("Upload functionality may not work without proper permissions")
     logger.info("NESOP Store application starting...")
     logger.info(f"Database path: {database_path}")
     logger.info(f"Upload folder: {upload_path}")

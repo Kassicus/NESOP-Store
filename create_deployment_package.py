@@ -38,6 +38,7 @@ def create_deployment_package():
         'deploy_config.py',
         'validate_deployment.py',
         'migrate_items_to_sqlite.py',
+        'fix_permissions.py',
         'uninstall_nesop_store.sh',
         'wsgi.py',
         'requirements.txt',

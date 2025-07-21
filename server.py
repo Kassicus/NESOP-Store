@@ -965,7 +965,7 @@ def get_ad_config():
         config_info = {
             'enabled': ad_manager.app_config.ad_config.is_enabled,
             'simple_bind_mode': ad_manager.simple_bind_mode,
-            'use_mock': ad_manager.app_config.ad_config.use_mock
+            'use_mock': ad_manager.app_config.use_mock_ad
         }
         return jsonify(config_info)
     except Exception as e:

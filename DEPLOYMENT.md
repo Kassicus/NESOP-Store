@@ -386,3 +386,108 @@ curl -I http://localhost:8080/
 - Database clustering or replication
 - Caching strategies with Redis or Memcached
 - Monitoring and alerting systems 
+
+## Troubleshooting
+
+### File Upload Permission Errors
+
+**Problem**: Getting `PermissionError: [Errno 13] Permission denied` when uploading images.
+
+**Symptoms**:
+```
+PermissionError: [Errno 13] Permission denied: '/opt/nesop-store/assets/images/filename.jpg'
+```
+
+**Solution**: Run the permission fix script:
+```bash
+# Method 1: Use the automated fix script
+cd /opt/nesop-store
+sudo python3 fix_permissions.py
+
+# Method 2: Manual fix
+sudo chown -R nesop:www-data /opt/nesop-store/assets/
+sudo chmod -R 775 /opt/nesop-store/assets/
+sudo systemctl restart nesop-store
+sudo systemctl restart nginx
+```
+
+### AD Integration Issues
+
+**Problem**: `'ADConfig' object has no attribute 'use_mock'` error.
+
+**Solution**: Update your AD configuration:
+```bash
+cd /opt/nesop-store
+sudo -u nesop python3 deploy_config.py --update-ad
+```
+
+### Service Won't Start
+
+**Problem**: NESOP Store service fails to start.
+
+**Check logs**:
+```bash
+# Check service status
+sudo systemctl status nesop-store
+
+# View recent logs
+sudo journalctl -u nesop-store -n 50
+
+# Follow live logs
+sudo journalctl -u nesop-store -f
+```
+
+**Common fixes**:
+```bash
+# Fix database permissions
+sudo chown nesop:nesop /opt/nesop-store/*.db
+
+# Ensure virtual environment exists
+cd /opt/nesop-store
+sudo -u nesop python3 -m venv venv
+sudo -u nesop venv/bin/pip install -r requirements.txt
+
+# Restart services
+sudo systemctl restart nesop-store
+```
+
+### Database Connection Issues
+
+**Problem**: Cannot connect to or create database.
+
+**Solution**:
+```bash
+# Check database file permissions
+ls -la /opt/nesop-store/*.db
+
+# Recreate database if corrupted
+cd /opt/nesop-store
+sudo -u nesop cp nesop_store_production.db nesop_store_production.db.backup
+sudo -u nesop venv/bin/python3 db_utils.py --init
+```
+
+### Nginx Configuration Issues
+
+**Problem**: 502 Bad Gateway or connection refused errors.
+
+**Check configuration**:
+```bash
+# Test nginx configuration
+sudo nginx -t
+
+# Check if NESOP Store service is running
+sudo systemctl status nesop-store
+
+# Verify socket/port configuration
+sudo netstat -tlnp | grep :5000
+```
+
+**Fix common issues**:
+```bash
+# Reload nginx configuration
+sudo systemctl reload nginx
+
+# Restart both services
+sudo systemctl restart nesop-store
+sudo systemctl restart nginx
+``` 
