@@ -8,6 +8,9 @@ import ad_utils
 import config
 import email_utils
 import uuid
+import stat
+import grp
+import pwd
 
 app = Flask(__name__, static_folder='.')
 
@@ -17,6 +20,96 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 # Get absolute path for upload folder
 UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'assets', 'images'))
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def set_file_ownership_and_permissions(file_path):
+    """Set correct ownership and permissions for uploaded files"""
+    try:
+        logging.info(f"Attempting to set ownership for: {file_path}")
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            logging.error(f"File does not exist: {file_path}")
+            return False
+        
+        # Get current file ownership for logging
+        current_stat = os.stat(file_path)
+        current_uid = current_stat.st_uid
+        current_gid = current_stat.st_gid
+        
+        try:
+            current_user = pwd.getpwuid(current_uid).pw_name
+        except KeyError:
+            current_user = str(current_uid)
+        
+        try:
+            current_group = grp.getgrgid(current_gid).gr_name
+        except KeyError:
+            current_group = str(current_gid)
+        
+        logging.info(f"Current ownership: {current_user}:{current_group} ({current_uid}:{current_gid})")
+        
+        # Get nesop user ID
+        try:
+            nesop_uid = pwd.getpwnam('nesop').pw_uid
+            logging.info(f"Target nesop UID: {nesop_uid}")
+        except KeyError:
+            # Fallback to current user if nesop doesn't exist
+            nesop_uid = os.getuid()
+            logging.warning("nesop user not found, using current user")
+        
+        # Get web server group ID (prefer www-data, fallback to nginx, then nesop)
+        web_gid = None
+        web_group = None
+        for group_name in ['www-data', 'nginx', 'nesop']:
+            try:
+                web_gid = grp.getgrnam(group_name).gr_gid
+                web_group = group_name
+                logging.info(f"Found web server group: {web_group} (GID: {web_gid})")
+                break
+            except KeyError:
+                continue
+        
+        if web_gid is None:
+            logging.error("No suitable web server group found")
+            return False
+        
+        # Check current process permissions
+        current_process_uid = os.getuid()
+        current_process_gid = os.getgid()
+        logging.info(f"Current process running as: UID {current_process_uid}, GID {current_process_gid}")
+        
+        # Set ownership: nesop user, web server group
+        logging.info(f"Setting ownership to: nesop:{web_group} ({nesop_uid}:{web_gid})")
+        os.chown(file_path, nesop_uid, web_gid)
+        
+        # Set permissions: 664 (rw for owner and group, r for others)
+        os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
+        
+        # Verify the change worked
+        new_stat = os.stat(file_path)
+        new_uid = new_stat.st_uid
+        new_gid = new_stat.st_gid
+        
+        try:
+            new_user = pwd.getpwuid(new_uid).pw_name
+        except KeyError:
+            new_user = str(new_uid)
+        
+        try:
+            new_group = grp.getgrgid(new_gid).gr_name
+        except KeyError:
+            new_group = str(new_gid)
+        
+        logging.info(f"✓ Successfully set ownership for {file_path}: {new_user}:{new_group} (664)")
+        return True
+        
+    except PermissionError as e:
+        logging.error(f"Permission denied when setting ownership for {file_path}: {e}")
+        logging.error("The Flask process may not have permission to change file ownership")
+        return False
+    except Exception as e:
+        logging.error(f"Failed to set ownership for {file_path}: {e}")
+        return False
 
 # Log the upload folder path
 logging.info(f"Upload folder path: {UPLOAD_FOLDER}")
@@ -839,6 +932,8 @@ def add_item():
         safe_name = f"{item.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
         image_path = os.path.join(UPLOAD_FOLDER, safe_name)
         image_file.save(image_path)
+        # Set correct ownership and permissions for uploaded file
+        set_file_ownership_and_permissions(image_path)
         image_filename = f"assets/images/{safe_name}"
     db_utils.add_item(item, description, float(price), image_filename, sold_out, unlisted)
     logging.info(f"Admin added item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted})")
@@ -871,6 +966,8 @@ def update_item():
         safe_name = f"{item.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
         image_path = os.path.join(UPLOAD_FOLDER, safe_name)
         image_file.save(image_path)
+        # Set correct ownership and permissions for uploaded file
+        set_file_ownership_and_permissions(image_path)
         image_filename = f"assets/images/{safe_name}"
     db_utils.update_item(
         item,
