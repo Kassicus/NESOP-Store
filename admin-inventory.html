@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inventory Management - NESOP Store Admin</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon/favicon.ico"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon/apple-touch-icon.png"/>
+  <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    .admin-container { 
+      max-width: 1400px; 
+      margin: 40px auto; 
+      padding: 2rem; 
+    }
+    
+    .admin-header {
+      background: var(--color-card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--color-shadow);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+    
+    .admin-header h1 {
+      color: #1976d2;
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--color-fg);
+      font-size: 0.9rem;
+    }
+    
+    .breadcrumb a {
+      color: #1976d2;
+      text-decoration: none;
+    }
+    
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    .stats-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: var(--color-card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--color-shadow);
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px var(--color-shadow-hover);
+      border-color: #1976d2;
+    }
+    
+    .stat-card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-card-label {
+      color: var(--color-fg);
+      font-weight: 600;
+    }
+    
+    .stat-card.in-stock .stat-card-value {
+      color: #4caf50;
+    }
+    
+    .stat-card.out-of-stock .stat-card-value {
+      color: #f44336;
+    }
+    
+    .stat-card.unlisted .stat-card-value {
+      color: #ff9800;
+    }
+    
+    .section-card {
+      background: var(--color-card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--color-shadow);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      transition: background-color 0.3s ease;
+    }
+    
+    .section-title {
+      color: #1976d2;
+      margin: 0 0 1.5rem 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .search-controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--color-border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: var(--color-input-bg);
+      color: var(--color-fg);
+      transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: #1976d2;
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    }
+    
+    .filter-select {
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--color-border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: var(--color-input-bg);
+      color: var(--color-fg);
+      min-width: 120px;
+      transition: all 0.3s ease;
+    }
+    
+    .filter-select:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+    
+    .action-btn {
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .action-btn:hover {
+      background: #1565c0;
+      transform: translateY(-1px);
+    }
+    
+    .action-btn:disabled {
+      background: #b3c6e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .action-btn.secondary {
+      background: #9e9e9e;
+    }
+    
+    .action-btn.secondary:hover {
+      background: #757575;
+    }
+    
+    .action-btn.danger {
+      background: #f44336;
+    }
+    
+    .action-btn.danger:hover {
+      background: #d32f2f;
+    }
+    
+    .action-btn.success {
+      background: #4caf50;
+    }
+    
+    .action-btn.success:hover {
+      background: #388e3c;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+      background: var(--color-card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px var(--color-shadow);
+    }
+    
+    .data-table th,
+    .data-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+      vertical-align: middle;
+    }
+    
+    .data-table th {
+      background: var(--color-table-header);
+      color: #1976d2;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    
+    .data-table tr:hover {
+      background: var(--color-hover, rgba(25, 118, 210, 0.05));
+    }
+    
+    .data-table .actions {
+      white-space: nowrap;
+    }
+    
+    .data-table .btn-small {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+      display: inline-block;
+    }
+    
+    .data-table .btn-small:last-child {
+      margin-right: 0;
+    }
+    
+    .product-image {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px var(--color-shadow);
+    }
+    
+    .scrollable-container {
+      max-height: 600px;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+    }
+    
+    .scrollable-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .scrollable-container::-webkit-scrollbar-track {
+      background: var(--color-border);
+    }
+    
+    .scrollable-container::-webkit-scrollbar-thumb {
+      background: #1976d2;
+      border-radius: 4px;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .status-badge.in-stock {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .status-badge.out-of-stock {
+      background: #f44336;
+      color: white;
+    }
+    
+    .status-badge.unlisted {
+      background: #ff9800;
+      color: white;
+    }
+    
+    .status-badge.listed {
+      background: #2196f3;
+      color: white;
+    }
+    
+    .price-display {
+      font-weight: 600;
+      color: #1976d2;
+      font-size: 1.1rem;
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--color-modal-overlay);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+    
+    .modal {
+      background: var(--color-card-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px var(--color-shadow-hover);
+      padding: 2rem;
+      min-width: 500px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      z-index: 1001;
+      position: relative;
+      animation: modalIn 0.2s;
+      transition: background-color 0.3s ease;
+    }
+    
+    @keyframes modalIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    
+    .modal-header {
+      margin-bottom: 1.5rem;
+    }
+    
+    .modal-title {
+      color: #1976d2;
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-label {
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-input {
+      padding: 0.75rem;
+      border: 2px solid var(--color-border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: var(--color-input-bg);
+      color: var(--color-fg);
+      transition: all 0.3s ease;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #1976d2;
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--color-fg);
+      opacity: 0.6;
+    }
+    
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .quick-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    
+    .stock-manager {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .stock-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    
+    .stock-input {
+      width: 100px;
+      padding: 0.5rem;
+      border: 2px solid var(--color-border);
+      border-radius: 6px;
+      text-align: center;
+      font-size: 1rem;
+    }
+    
+    /* Consistent Navigation Styles */
+    .nav-btn {
+      background: #64b5f6;
+      border: 2px solid #64b5f6;
+      border-radius: 8px;
+      padding: 0.6rem;
+      cursor: pointer;
+      color: white;
+      transition: all 0.3s ease;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .nav-btn:hover {
+      background: #42a5f5;
+      border-color: #42a5f5;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .nav-btn svg {
+      stroke: currentColor;
+      fill: none;
+    }
+    
+    .nav-btn.logout-btn {
+      background: #f44336;
+      border-color: #f44336;
+      color: white;
+    }
+    
+    .nav-btn.logout-btn:hover {
+      background: #d32f2f;
+      border-color: #d32f2f;
+      color: white;
+    }
+    
+    .nav-btn-active {
+      background: white !important;
+      border-color: #1976d2 !important;
+      color: #1976d2 !important;
+    }
+    
+    .nav-btn-active:hover {
+      background: #f5f5f5 !important;
+      border-color: #1976d2 !important;
+      color: #1976d2 !important;
+    }
+    
+    .cart-count-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #f44336;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+    }
+    
+    .admin-only {
+      display: none;
+    }
+    
+    .admin-only.show {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <header class="store-header">
+    <div class="container">
+      <div style="display: flex; justify-content: center; align-items: center; width: 60px; height: 60px; background-color: #fff; border-radius: 50%; margin: 0; padding: 0;">
+        <img src="assets/images/nesop-logo.png" alt="NESOP Logo" class="nesop-logo" style="width: 40px; height: 40px; margin: 0; padding: 0;">
+      </div>
+      <div class="user-info" style="display: flex; justify-content: center; align-items: center; flex-direction: row; margin-top: 0.5rem; margin-bottom: 0.5rem; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; margin-left: 2rem;">
+          <span id="admin-welcome" style="font-size:1.25em; margin-left: 0; padding-left: 0;"></span>
+        </div>
+        <nav class="header-nav" style="display: flex; align-items: center; gap: 0.5rem;">
+          <!-- User Account -->
+          <button onclick="window.location.href='account.html'" class="nav-btn" title="My Account">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
+          
+          <!-- Cart -->
+          <button onclick="window.location.href='cart.html'" class="nav-btn" title="Shopping Cart">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span id="cart-count-badge" class="cart-count-badge">0</span>
+          </button>
+          
+          <!-- Store -->
+          <button onclick="window.location.href='index.html'" class="nav-btn" title="Store">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9,22 9,12 15,12 15,22"></polyline>
+            </svg>
+          </button>
+          
+          <!-- Theme Toggle -->
+          <button type="button" data-theme-toggle aria-label="Change theme" class="nav-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+          
+          <!-- Admin (visible to admins only) -->
+          <button onclick="window.location.href='admin-dashboard.html'" class="nav-btn admin-only" title="Admin Panel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"></path>
+            </svg>
+          </button>
+          
+          <!-- Logout -->
+          <button id="logout-btn" class="nav-btn logout-btn" title="Logout">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16,17 21,12 16,7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <div class="admin-container">
+    <div class="admin-header">
+      <div>
+        <div class="breadcrumb">
+          <a href="admin-dashboard.html">Admin Dashboard</a>
+          <span>→</span>
+          <span>Inventory Management</span>
+        </div>
+        <h1>📦 Inventory Management</h1>
+      </div>
+    </div>
+
+    <!-- Inventory Statistics -->
+    <div class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-card-value" id="total-products-count">-</div>
+        <div class="stat-card-label">Total Products</div>
+      </div>
+      <div class="stat-card in-stock">
+        <div class="stat-card-value" id="in-stock-count">-</div>
+        <div class="stat-card-label">In Stock</div>
+      </div>
+      <div class="stat-card out-of-stock">
+        <div class="stat-card-value" id="out-of-stock-count">-</div>
+        <div class="stat-card-label">Out of Stock</div>
+      </div>
+      <div class="stat-card unlisted">
+        <div class="stat-card-value" id="unlisted-count">-</div>
+        <div class="stat-card-label">Unlisted</div>
+      </div>
+    </div>
+
+    <!-- Inventory Management -->
+    <div class="section-card">
+      <h3 class="section-title">
+        <span>📋</span>
+        Product Inventory
+      </h3>
+      
+      <div class="search-controls">
+        <input type="text" id="product-search" class="search-input" placeholder="Search products by name or description...">
+        <select id="stock-filter" class="filter-select">
+          <option value="">All Products</option>
+          <option value="in-stock">In Stock Only</option>
+          <option value="out-of-stock">Out of Stock Only</option>
+          <option value="unlisted">Unlisted Only</option>
+        </select>
+        <button class="action-btn" onclick="searchProducts()">
+          🔍 Search
+        </button>
+        <button class="action-btn" onclick="clearProductSearch()">
+          🗑️ Clear
+        </button>
+        <button class="action-btn" onclick="showAddProductForm()">
+          ➕ Add Product
+        </button>
+      </div>
+
+      <div class="scrollable-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Product</th>
+              <th>Description</th>
+              <th>Price</th>
+              <th>Stock Status</th>
+              <th>Visibility</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="products-table-body">
+            <tr>
+              <td colspan="7" class="empty-state">
+                <div class="empty-state-icon">⏳</div>
+                <div>Loading products...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bulk Stock Management -->
+    <div class="section-card">
+      <h3 class="section-title">
+        <span>⚡</span>
+        Bulk Stock Management
+      </h3>
+      
+      <div class="stock-manager">
+        <h4 style="color: #1976d2; margin-top: 0;">Quick Stock Updates</h4>
+        <div class="stock-controls">
+          <button class="action-btn danger" onclick="markAllOutOfStock()">
+            ❌ Mark All Out of Stock
+          </button>
+          <button class="action-btn success" onclick="markAllInStock()">
+            ✅ Mark All In Stock
+          </button>
+          <button class="action-btn secondary" onclick="toggleAllUnlisted()">
+            👁️ Toggle All Visibility
+          </button>
+        </div>
+        <p style="color: var(--color-fg); font-size: 0.9rem; margin: 0;">
+          <strong>Warning:</strong> Bulk operations affect all products. Use with caution.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-root" style="display:none;"></div>
+
+  <script>
+    let allProducts = [];
+    let filteredProducts = [];
+
+    // Check if user is admin
+    const currentUser = localStorage.getItem('nesop_user');
+    if (!currentUser) {
+      alert('Please log in first.');
+      window.location.href = 'index.html';
+    } else {
+      fetch('/api/check-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.is_admin) {
+          alert('Admin access only.');
+          window.location.href = 'index.html';
+        }
+      });
+    }
+
+    // Set welcome message with username and initialize navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      const username = localStorage.getItem('nesop_user') || '';
+      const displayUsername = extractUsername(username);
+      document.getElementById('admin-welcome').innerHTML = `Welcome <b style="text-transform:capitalize;">${capitalizeFirstLetter(displayUsername)}</b>!`;
+      
+      // Initialize navigation
+      initializeNavigation();
+
+      // Initialize page functionality
+      fetchProducts();
+      
+      // Add event listeners
+      document.getElementById('product-search').addEventListener('input', debounce(searchProducts, 300));
+      document.getElementById('stock-filter').addEventListener('change', searchProducts);
+    });
+
+    function capitalizeFirstLetter(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function initializeNavigation() {
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) {
+        logoutBtn.onclick = function() {
+          localStorage.removeItem('nesop_user');
+          localStorage.removeItem('nesop_user_admin');
+          window.location.href = 'index.html';
+        };
+      }
+
+      // Show admin button (since we're already in admin area, user is admin)
+      const adminBtn = document.querySelector('.admin-only');
+      if (adminBtn) {
+        adminBtn.classList.add('show');
+      }
+
+      // Load and display cart count
+      updateCartCount();
+    }
+
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('nesop_cart') || '[]');
+      const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+      const cartBadge = document.getElementById('cart-count-badge');
+      
+      if (cartBadge) {
+        cartBadge.textContent = cartCount;
+        cartBadge.style.display = cartCount > 0 ? 'flex' : 'none';
+      }
+    }
+
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // --- Products Management ---
+    function fetchProducts() {
+      fetch('/api/items')
+        .then(res => res.json())
+        .then(data => {
+          allProducts = data.items || [];
+          filteredProducts = [...allProducts];
+          renderProductsTable(filteredProducts);
+          updateProductStats(allProducts);
+        })
+        .catch(error => {
+          console.error('Error fetching products:', error);
+          showError('Failed to load products');
+        });
+    }
+
+    function updateProductStats(products) {
+      const totalProducts = products.length;
+      const inStock = products.filter(p => !p.sold_out).length;
+      const outOfStock = products.filter(p => p.sold_out).length;
+      const unlisted = products.filter(p => p.unlisted).length;
+
+      document.getElementById('total-products-count').textContent = totalProducts;
+      document.getElementById('in-stock-count').textContent = inStock;
+      document.getElementById('out-of-stock-count').textContent = outOfStock;
+      document.getElementById('unlisted-count').textContent = unlisted;
+    }
+
+    function searchProducts() {
+      const searchTerm = document.getElementById('product-search').value.toLowerCase().trim();
+      const stockFilter = document.getElementById('stock-filter').value;
+
+      filteredProducts = allProducts.filter(product => {
+        const matchesSearch = !searchTerm || 
+          product.item.toLowerCase().includes(searchTerm) ||
+          product.description.toLowerCase().includes(searchTerm);
+        
+        const matchesFilter = !stockFilter || 
+          (stockFilter === 'in-stock' && !product.sold_out) ||
+          (stockFilter === 'out-of-stock' && product.sold_out) ||
+          (stockFilter === 'unlisted' && product.unlisted);
+        
+        return matchesSearch && matchesFilter;
+      });
+
+      renderProductsTable(filteredProducts);
+    }
+
+    function clearProductSearch() {
+      document.getElementById('product-search').value = '';
+      document.getElementById('stock-filter').value = '';
+      filteredProducts = [...allProducts];
+      renderProductsTable(filteredProducts);
+    }
+
+    function renderProductsTable(products) {
+      const tbody = document.getElementById('products-table-body');
+      
+      if (!products || products.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">
+              <div class="empty-state-icon">📦</div>
+              <div>No products found</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      products.forEach(product => {
+        const stockStatus = product.sold_out ? 'out-of-stock' : 'in-stock';
+        const stockText = product.sold_out ? 'Out of Stock' : 'In Stock';
+        const visibilityStatus = product.unlisted ? 'unlisted' : 'listed';
+        const visibilityText = product.unlisted ? 'Unlisted' : 'Listed';
+        const imgSrc = product.image || 'assets/images/placeholder.png';
+        
+        html += `
+          <tr>
+            <td>
+              <img src="${imgSrc}" alt="${product.item}" class="product-image" 
+                   onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
+            </td>
+            <td><strong>${product.item}</strong></td>
+            <td>${product.description}</td>
+            <td><span class="price-display">₦${product.price}</span></td>
+            <td><span class="status-badge ${stockStatus}">${stockText}</span></td>
+            <td><span class="status-badge ${visibilityStatus}">${visibilityText}</span></td>
+            <td class="actions">
+              <button class="action-btn btn-small" onclick="showEditProductForm('${product.item}')">✏️ Edit</button>
+              <button class="action-btn btn-small danger" onclick="deleteProduct('${product.item}')">🗑️ Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      tbody.innerHTML = html;
+    }
+
+    function showEditProductForm(itemName) {
+      const product = allProducts.find(p => p.item === itemName);
+      if (!product) return;
+
+      const html = `
+        <div class="modal-header">
+          <h3 class="modal-title">Edit Product</h3>
+        </div>
+        <div style="text-align: center; margin-bottom: 1rem;">
+          <img src='${product.image || 'assets/images/placeholder.png'}' alt='${product.item}' 
+               style='max-width:120px;max-height:120px;object-fit:cover;border-radius:8px;box-shadow: 0 2px 8px var(--color-shadow);' 
+               onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="edit-item">Product Name</label>
+            <input id='edit-item' class="form-input" value='${product.item}' disabled />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-price">Price (₦)</label>
+            <input id='edit-price' class="form-input" type='number' value='${product.price}' step="0.01" />
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label" for="edit-description">Description</label>
+            <input id='edit-description' class="form-input" value='${product.description}' />
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label" for="edit-image">New Image (Optional)</label>
+            <input id='edit-image' class="form-input" type='file' accept='image/*' />
+          </div>
+          <div class="form-group">
+            <div class="checkbox-container">
+              <input id='edit-sold-out' type='checkbox' ${product.sold_out ? 'checked' : ''} />
+              <label for="edit-sold-out">Out of Stock</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="checkbox-container">
+              <input id='edit-unlisted' type='checkbox' ${product.unlisted ? 'checked' : ''} />
+              <label for="edit-unlisted">Unlisted</label>
+            </div>
+          </div>
+        </div>
+        <div class='modal-actions'>
+          <button class='action-btn' onclick='saveEditProduct()'>💾 Save Changes</button>
+          <button class='action-btn secondary' onclick='closeModal()'>❌ Cancel</button>
+        </div>
+      `;
+      showModal(html);
+    }
+
+    function saveEditProduct() {
+      const item = document.getElementById('edit-item').value;
+      const description = document.getElementById('edit-description').value;
+      const price = parseFloat(document.getElementById('edit-price').value) || 0;
+      const imageInput = document.getElementById('edit-image');
+      const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const soldOut = document.getElementById('edit-sold-out').checked ? 1 : 0;
+      const unlisted = document.getElementById('edit-unlisted').checked ? 1 : 0;
+      
+      const formData = new FormData();
+      formData.append('item', item);
+      formData.append('description', description);
+      formData.append('price', price);
+      formData.append('sold_out', soldOut);
+      formData.append('unlisted', unlisted);
+      if (imageFile) formData.append('image', imageFile);
+      
+      fetch('/api/items', { method: 'PUT', body: formData })
+        .then(res => res.json())
+        .then(data => {
+          closeModal();
+          fetchProducts();
+          showSuccess('Product updated successfully');
+        })
+        .catch(error => {
+          console.error('Error updating product:', error);
+          showError('Failed to update product');
+        });
+    }
+
+    function deleteProduct(itemName) {
+      if (!confirm(`Delete product "${itemName}"?`)) return;
+      
+      fetch('/api/items', { 
+        method: 'DELETE', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ item: itemName }) 
+      })
+      .then(res => res.json())
+      .then(data => {
+        fetchProducts();
+        showSuccess('Product deleted successfully');
+      })
+      .catch(error => {
+        console.error('Error deleting product:', error);
+        showError('Failed to delete product');
+      });
+    }
+
+    function showAddProductForm() {
+      const html = `
+        <div class="modal-header">
+          <h3 class="modal-title">Add New Product</h3>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="add-item">Product Name</label>
+            <input id='add-item' class="form-input" placeholder="Enter product name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-price">Price (₦)</label>
+            <input id='add-price' class="form-input" type='number' value='0' step="0.01" />
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label" for="add-description">Description</label>
+            <input id='add-description' class="form-input" placeholder="Enter product description" />
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label" for="add-image">Product Image (Optional)</label>
+            <input id='add-image' class="form-input" type='file' accept='image/*' />
+          </div>
+          <div class="form-group">
+            <div class="checkbox-container">
+              <input id='add-sold-out' type='checkbox' />
+              <label for="add-sold-out">Out of Stock</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="checkbox-container">
+              <input id='add-unlisted' type='checkbox' />
+              <label for="add-unlisted">Unlisted</label>
+            </div>
+          </div>
+        </div>
+        <div class='modal-actions'>
+          <button class='action-btn' onclick='addProduct()'>➕ Add Product</button>
+          <button class='action-btn secondary' onclick='closeModal()'>❌ Cancel</button>
+        </div>
+      `;
+      showModal(html);
+    }
+
+    function addProduct() {
+      const item = document.getElementById('add-item').value.trim();
+      const description = document.getElementById('add-description').value;
+      const price = parseFloat(document.getElementById('add-price').value) || 0;
+      const imageInput = document.getElementById('add-image');
+      const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+      const soldOut = document.getElementById('add-sold-out').checked ? 1 : 0;
+      const unlisted = document.getElementById('add-unlisted').checked ? 1 : 0;
+      
+      if (!item) {
+        showError('Product name is required');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('item', item);
+      formData.append('description', description);
+      formData.append('price', price);
+      formData.append('sold_out', soldOut);
+      formData.append('unlisted', unlisted);
+      if (imageFile) formData.append('image', imageFile);
+      
+      fetch('/api/items', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+          closeModal();
+          fetchProducts();
+          showSuccess('Product added successfully');
+        })
+        .catch(error => {
+          console.error('Error adding product:', error);
+          showError('Failed to add product');
+        });
+    }
+
+    function toggleStock(itemName, setSoldOut) {
+      const product = allProducts.find(p => p.item === itemName);
+      if (!product) return;
+
+      const formData = new FormData();
+      formData.append('item', itemName);
+      formData.append('description', product.description);
+      formData.append('price', product.price);
+      formData.append('sold_out', setSoldOut ? 1 : 0);
+      formData.append('unlisted', product.unlisted ? 1 : 0);
+
+      fetch('/api/items', { method: 'PUT', body: formData })
+        .then(res => res.json())
+        .then(data => {
+          fetchProducts();
+          const status = setSoldOut ? 'out of stock' : 'in stock';
+          showSuccess(`${itemName} marked as ${status}`);
+        })
+        .catch(error => {
+          console.error('Error updating stock:', error);
+          showError('Failed to update stock status');
+        });
+    }
+
+    function toggleVisibility(itemName, setUnlisted) {
+      const product = allProducts.find(p => p.item === itemName);
+      if (!product) return;
+
+      const formData = new FormData();
+      formData.append('item', itemName);
+      formData.append('description', product.description);
+      formData.append('price', product.price);
+      formData.append('sold_out', product.sold_out ? 1 : 0);
+      formData.append('unlisted', setUnlisted ? 1 : 0);
+
+      fetch('/api/items', { method: 'PUT', body: formData })
+        .then(res => res.json())
+        .then(data => {
+          fetchProducts();
+          const status = setUnlisted ? 'unlisted' : 'listed';
+          showSuccess(`${itemName} marked as ${status}`);
+        })
+        .catch(error => {
+          console.error('Error updating visibility:', error);
+          showError('Failed to update visibility');
+        });
+    }
+
+
+
+    // Bulk Operations
+    function markAllOutOfStock() {
+      if (!confirm('Mark ALL products as out of stock?')) return;
+      
+      bulkUpdateProducts({ sold_out: true });
+    }
+
+    function markAllInStock() {
+      if (!confirm('Mark ALL products as in stock?')) return;
+      
+      bulkUpdateProducts({ sold_out: false });
+    }
+
+    function toggleAllUnlisted() {
+      if (!confirm('Toggle visibility for ALL products?')) return;
+      
+      // This would need a custom implementation in the backend
+      showError('Bulk visibility toggle not yet implemented');
+    }
+
+    function bulkUpdateProducts(updates) {
+      const promises = allProducts.map(product => {
+        const formData = new FormData();
+        formData.append('item', product.item);
+        formData.append('description', product.description);
+        formData.append('price', product.price);
+        formData.append('sold_out', updates.sold_out !== undefined ? (updates.sold_out ? 1 : 0) : (product.sold_out ? 1 : 0));
+        formData.append('unlisted', updates.unlisted !== undefined ? (updates.unlisted ? 1 : 0) : (product.unlisted ? 1 : 0));
+        
+        return fetch('/api/items', { method: 'PUT', body: formData });
+      });
+
+      Promise.all(promises)
+        .then(() => {
+          fetchProducts();
+          showSuccess('Bulk update completed successfully');
+        })
+        .catch(error => {
+          console.error('Error in bulk update:', error);
+          showError('Some products failed to update');
+        });
+    }
+
+    // --- Utility Functions ---
+    function showModal(contentHtml) {
+      document.getElementById('modal-root').innerHTML = `
+        <div class='modal-overlay' onclick='closeModal(event)'>
+          <div class='modal' onclick='event.stopPropagation()'>
+            ${contentHtml}
+          </div>
+        </div>
+      `;
+      document.getElementById('modal-root').style.display = 'block';
+    }
+
+    function closeModal(e) {
+      if (e && e.target && !e.target.classList.contains('modal-overlay')) return;
+      document.getElementById('modal-root').style.display = 'none';
+      document.getElementById('modal-root').innerHTML = '';
+    }
+
+    function showSuccess(message) {
+      console.log('Success:', message);
+      // Could implement a toast notification system here
+    }
+
+    function showError(message) {
+      console.error('Error:', message);
+      // Could implement a toast notification system here
+    }
+  </script>
+  <script src="scripts/utils.js"></script>
+</body>
+</html> 

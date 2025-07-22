@@ -9,18 +9,89 @@
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png"/>
   <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon/apple-touch-icon.png"/>
   <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    /* Consistent Navigation Styles */
+    .nav-btn {
+      background: #64b5f6;
+      border: 2px solid #64b5f6;
+      border-radius: 8px;
+      padding: 0.6rem;
+      cursor: pointer;
+      color: white;
+      transition: all 0.3s ease;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .nav-btn:hover {
+      background: #42a5f5;
+      border-color: #42a5f5;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .nav-btn svg {
+      stroke: currentColor;
+      fill: none;
+    }
+    
+    .nav-btn.logout-btn {
+      background: #f44336;
+      border-color: #f44336;
+      color: white;
+    }
+    
+    .nav-btn.logout-btn:hover {
+      background: #d32f2f;
+      border-color: #d32f2f;
+      color: white;
+    }
+    
+    .nav-btn-active {
+      background: white !important;
+      border-color: #1976d2 !important;
+      color: #1976d2 !important;
+    }
+    
+    .nav-btn-active:hover {
+      background: #f5f5f5 !important;
+      border-color: #1976d2 !important;
+      color: #1976d2 !important;
+    }
+    
+    .cart-count-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #f44336;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+    }
+    
+    .admin-only {
+      display: none;
+    }
+    
+    .admin-only.show {
+      display: flex;
+    }
+  </style>
 </head>
 <body>
   <div id="app">
-    <div class="user-info">
-      <span>Welcome, ${username}</span>
-      <span id="admin-panel-link"></span>
-      <a href="cart.html" class="header-icon-btn" title="View Cart">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="cart-icon" width="20" height="20"><defs><style>.cls-1{fill:#231f20}</style></defs><g id="cart"><path class="cls-1" d="M29.46 10.14A2.94 2.94 0 0 0 27.1 9H10.22L8.76 6.35A2.67 2.67 0 0 0 6.41 5H3a1 1 0 0 0 0 2h3.41a.68.68 0 0 1 .6.31l1.65 3 .86 9.32a3.84 3.84 0 0 0 4 3.38h10.37a3.92 3.92 0 0 0 3.85-2.78l2.17-7.82a2.58 2.58 0 0 0-.45-2.27zM28 11.86l-2.17 7.83A1.93 1.93 0 0 1 23.89 21H13.48a1.89 1.89 0 0 1-2-1.56L10.73 11H27.1a1 1 0 0 1 .77.35.59.59 0 0 1 .13.51z"/><circle class="cls-1" cx="14" cy="26" r="2"/><circle class="cls-1" cx="24" cy="26" r="2"/></g></svg>
-        <span id="cart-count-badge" class="cart-count-badge">0</span>
-      </a>
-      <button id="logout-btn" class="logout-btn">Logout</button>
-    </div>
+    <!-- Content will be dynamically loaded by store.js -->
   </div>
   <script src="scripts/auth.js"></script>
   <script src="scripts/store.js"></script>

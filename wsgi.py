@@ -86,21 +86,39 @@ try:
     # Set proper permissions for upload directory (readable and writable by group)
     try:
         import stat
-        import grp
-        import pwd
         
-        # Set directory permissions to 775 (owner: rwx, group: rwx, others: r-x)
-        os.chmod(upload_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
-        
-        # Try to set group ownership to www-data if it exists
+        # Try to import Unix-specific modules
         try:
-            www_data_gid = grp.getgrnam('www-data').gr_gid
-            os.chown(upload_path, -1, www_data_gid)  # -1 means don't change owner, only group
-            logger.info(f"Set upload directory group to www-data: {upload_path}")
-        except (KeyError, OSError) as e:
-            # If www-data group doesn't exist, try to make it writable by all
-            os.chmod(upload_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-            logger.warning(f"Could not set www-data group ownership, made directory world-writable: {e}")
+            import grp
+            import pwd
+            unix_permissions_available = True
+        except ImportError:
+            # On Windows or other non-Unix systems, these modules aren't available
+            grp = None
+            pwd = None
+            unix_permissions_available = False
+            logger.info("Unix permission modules not available, skipping advanced ownership operations (likely running on Windows)")
+        
+        if unix_permissions_available:
+            # Set directory permissions to 775 (owner: rwx, group: rwx, others: r-x)
+            os.chmod(upload_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+            
+            # Try to set group ownership to www-data if it exists
+            try:
+                www_data_gid = grp.getgrnam('www-data').gr_gid
+                os.chown(upload_path, -1, www_data_gid)  # -1 means don't change owner, only group
+                logger.info(f"Set upload directory group to www-data: {upload_path}")
+            except (KeyError, OSError) as e:
+                # If www-data group doesn't exist, try to make it writable by all
+                os.chmod(upload_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+                logger.warning(f"Could not set www-data group ownership, made directory world-writable: {e}")
+        else:
+            # On Windows, just ensure the directory is writable by the current user
+            try:
+                os.chmod(upload_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+                logger.info(f"Set basic permissions for upload directory: {upload_path}")
+            except Exception as perm_error:
+                logger.warning(f"Could not set basic permissions for upload directory: {perm_error}")
             
     except Exception as e:
         logger.error(f"Could not set upload directory permissions: {e}")

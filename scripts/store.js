@@ -64,28 +64,56 @@ function showStore(username) {
               <span style="font-size:1.25em; margin-left: 0; padding-left: 0;">Welcome <b style="text-transform:capitalize;">${capitalizeFirstLetter(extractUsername(username))}</b>!</span>
               <span style="font-size:0.98em; color:#fff; margin-top:0.2em;">Balance: ₦ ${balance}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <a href="account.html" class="header-icon-btn" title="My Account">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <nav class="header-nav" style="display: flex; align-items: center; gap: 0.5rem;">
+              <!-- User Account -->
+              <button onclick="window.location.href='account.html'" class="nav-btn" title="My Account">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-              </a>
-              <a href="cart.html" class="header-icon-btn" title="View Cart">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="cart-icon" width="20" height="20"><defs><style>.cls-1{fill:#231f20}</style></defs><g id="cart"><path class="cls-1" d="M29.46 10.14A2.94 2.94 0 0 0 27.1 9H10.22L8.76 6.35A2.67 2.67 0 0 0 6.41 5H3a1 1 0 0 0 0 2h3.41a.68.68 0 0 1 .6.31l1.65 3 .86 9.32a3.84 3.84 0 0 0 4 3.38h10.37a3.92 3.92 0 0 0 3.85-2.78l2.17-7.82a2.58 2.58 0 0 0-.45-2.27zM28 11.86l-2.17 7.83A1.93 1.93 0 0 1 23.89 21H13.48a1.89 1.89 0 0 1-2-1.56L10.73 11H27.1a1 1 0 0 1 .77.35.59.59 0 0 1 .13.51z"/><circle class="cls-1" cx="14" cy="26" r="2"/><circle class="cls-1" cx="24" cy="26" r="2"/></g></svg>
-                <span id="cart-count-badge" class="cart-count-badge">0</span>
-              </a>
-              <button 
-                type="button" 
-                data-theme-toggle 
-                aria-label="Change theme"
-                class="theme-toggle-btn"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
               </button>
-              ${isAdmin ? '<button onclick="window.location.href=\'admin.html\'" class="admin-link logout-btn">Admin Panel</button>' : ''}
-              <button id="logout-btn" class="logout-btn">Logout</button>
-            </div>
+              
+              <!-- Cart -->
+              <button onclick="window.location.href='cart.html'" class="nav-btn" title="Shopping Cart">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span id="cart-count-badge" class="cart-count-badge">0</span>
+              </button>
+              
+              <!-- Store (current page, different styling) -->
+              <button class="nav-btn nav-btn-active" title="Store">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9,22 9,12 15,12 15,22"></polyline>
+                </svg>
+              </button>
+              
+              <!-- Theme Toggle -->
+              <button type="button" data-theme-toggle aria-label="Change theme" class="nav-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+              </button>
+              
+              <!-- Admin (visible to admins only) -->
+              <button onclick="window.location.href='admin-dashboard.html'" class="nav-btn admin-only ${isAdmin ? 'show' : ''}" title="Admin Panel">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"></path>
+                </svg>
+              </button>
+              
+              <!-- Logout -->
+              <button id="logout-btn" class="nav-btn logout-btn" title="Logout">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4"></path>
+                  <polyline points="16,17 21,12 16,7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+              </button>
+            </nav>
           </div>
         </div>
       </header>

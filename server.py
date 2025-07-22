@@ -9,8 +9,17 @@ import config
 import email_utils
 import uuid
 import stat
-import grp
-import pwd
+
+# Conditional imports for Unix-specific modules
+try:
+    import grp
+    import pwd
+    UNIX_PERMISSIONS_AVAILABLE = True
+except ImportError:
+    # On Windows or other non-Unix systems, these modules aren't available
+    grp = None
+    pwd = None
+    UNIX_PERMISSIONS_AVAILABLE = False
 
 app = Flask(__name__, static_folder='.')
 
@@ -30,6 +39,18 @@ def set_file_ownership_and_permissions(file_path):
         if not os.path.exists(file_path):
             logging.error(f"File does not exist: {file_path}")
             return False
+        
+        # If Unix permissions are not available (e.g., on Windows), skip ownership operations
+        if not UNIX_PERMISSIONS_AVAILABLE:
+            logging.info("Unix permission modules not available, skipping ownership operations (likely running on Windows)")
+            # Still try to set basic read permissions using os.chmod if possible
+            try:
+                # Make file readable and writable by owner
+                os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+                logging.info(f"Set basic permissions for: {file_path}")
+            except Exception as e:
+                logging.warning(f"Could not set basic permissions: {e}")
+            return True
         
         # Get current file ownership for logging
         current_stat = os.stat(file_path)
