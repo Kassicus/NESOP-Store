@@ -117,12 +117,75 @@ function showStore(username) {
           </div>
         </div>
       </header>
-      <main>
+      
+      <!-- Modern Shop Interface -->
+      <main class="store-main">
         <div class="container">
-          <div class="product-grid" id="store-items"></div>
+          <!-- Search and Filter Section -->
+          <div class="shop-controls">
+            <div class="search-section">
+              <div class="search-container">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="21 21l-4.35-4.35"></path>
+                </svg>
+                <input 
+                  type="text" 
+                  id="product-search" 
+                  placeholder="Search products..." 
+                  class="search-input"
+                />
+              </div>
+            </div>
+            <div class="filter-section">
+              <select id="sort-products" class="modern-select">
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="price-asc">Price (Low-High)</option>
+                <option value="price-desc">Price (High-Low)</option>
+                <option value="available">Available First</option>
+              </select>
+              <select id="filter-availability" class="modern-select">
+                <option value="all">All Products</option>
+                <option value="available">In Stock</option>
+                <option value="sold-out">Sold Out</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Products Grid -->
+          <div class="products-section">
+            <div class="section-header">
+              <h2>Our Products</h2>
+              <div class="results-info" id="results-count">Loading products...</div>
+            </div>
+            
+            <!-- Loading State -->
+            <div class="loading-state" id="loading-products">
+              <div class="loading-spinner"></div>
+              <p>Loading amazing products...</p>
+            </div>
+            
+            <!-- Products Grid -->
+            <div class="modern-product-grid" id="store-items">
+              <!-- Products will be rendered here -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="no-products" style="display: none;">
+              <div class="empty-icon">🔍</div>
+              <h3>No products found</h3>
+              <p>Try adjusting your search or filter criteria.</p>
+            </div>
+          </div>
         </div>
       </main>
     `;
+    
+    // Initialize shop functionality
+    initializeShop();
+    
+    // Set up logout
     document.getElementById('logout-btn').onclick = function() {
       window.nesopLogout();
     };
@@ -130,8 +193,12 @@ function showStore(username) {
     // Set up theme toggle
     setTimeout(setupThemeToggle, 100);
     
-    renderItems(items);
-    updateCartCount();
+         // Initialize products
+     setTimeout(() => {
+       renderModernItems(items);
+       setupSearchAndFilters();
+       updateCartCount();
+     }, 100);
   }).catch(err => {
     document.getElementById('app').innerHTML = '<p style="color:red;">Failed to load store data.</p>';
     console.error('Error loading store data:', err);
@@ -328,52 +395,276 @@ function closeProductModal() {
   }
 }
 
-function renderItems(items) {
+// Modern shop initialization
+let currentItems = [];
+let filteredItems = [];
+let searchQuery = '';
+let sortBy = 'name-asc';
+let filterBy = 'all';
+
+function initializeShop() {
+  // Any initial shop setup can go here
+  console.log('🏪 Modern shop initialized');
+}
+
+
+
+function renderModernItems(items) {
+  currentItems = items.filter(item => !item.unlisted);
+  filteredItems = [...currentItems];
+  
+  // Hide loading state
+  const loading = document.getElementById('loading-products');
+  if (loading) loading.style.display = 'none';
+  
+  applyFiltersAndSort();
+}
+
+function applyFiltersAndSort() {
+  let filtered = [...currentItems];
+  
+  // Apply search filter
+  if (searchQuery.trim()) {
+    filtered = filtered.filter(item => 
+      item.item.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+  
+  // Apply availability filter
+  if (filterBy === 'available') {
+    filtered = filtered.filter(item => !item.sold_out);
+  } else if (filterBy === 'sold-out') {
+    filtered = filtered.filter(item => item.sold_out);
+  }
+  
+  // Apply sorting
+  filtered.sort((a, b) => {
+    switch (sortBy) {
+      case 'name-asc':
+        return a.item.localeCompare(b.item);
+      case 'name-desc':
+        return b.item.localeCompare(a.item);
+      case 'price-asc':
+        return parseFloat(a.price) - parseFloat(b.price);
+      case 'price-desc':
+        return parseFloat(b.price) - parseFloat(a.price);
+      case 'available':
+        return (a.sold_out ? 1 : 0) - (b.sold_out ? 1 : 0);
+      default:
+        return 0;
+    }
+  });
+  
+  filteredItems = filtered;
+  renderProductCards();
+  updateResultsCount();
+}
+
+function renderProductCards() {
   const container = document.getElementById('store-items');
+  const noProducts = document.getElementById('no-products');
+  
   if (!container) return;
-  // Filter out unlisted items
-  const visibleItems = items.filter(item => !item.unlisted);
-  container.innerHTML = visibleItems.map((item, idx) => `
-    <div class="product-card">
-      <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="product-img${item.sold_out ? ' sold-out-img' : ''}" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" data-item="${item.item}" style="cursor:pointer;" />
-      <div class="product-info">
-        <h3 class="product-name" data-item="${item.item}" style="cursor:pointer;">${item.item}</h3>
-        <p class="product-desc">${item.description}</p>
-        <div class="product-bottom">
-          <span class="product-price">₦ ${item.price}</span>
-          <button class="add-cart-btn${item.sold_out ? ' sold-out-btn' : ''}" data-idx="${idx}" ${item.sold_out ? 'disabled' : ''}>${item.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
+  
+  if (filteredItems.length === 0) {
+    container.style.display = 'none';
+    noProducts.style.display = 'flex';
+    return;
+  }
+  
+  container.style.display = 'grid';
+  noProducts.style.display = 'none';
+  
+  container.innerHTML = filteredItems.map((item, idx) => {
+    const inCart = getCart().some(cartItem => cartItem.item === item.item);
+    const stockBadge = item.sold_out ? 
+      '<span class="stock-badge sold-out">Sold Out</span>' : 
+      '<span class="stock-badge in-stock">In Stock</span>';
+    
+    return `
+      <div class="modern-product-card ${item.sold_out ? 'sold-out' : ''}" data-item="${item.item}">
+        <div class="product-image-container">
+          <img 
+            src="${item.image || 'assets/images/placeholder.png'}" 
+            alt="${item.item}" 
+            class="modern-product-img" 
+            onerror="this.onerror=null;this.src='assets/images/placeholder.png';" 
+          />
+          ${stockBadge}
+          <div class="product-overlay">
+            <button class="quick-view-btn" data-item="${item.item}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Quick View
+            </button>
+          </div>
+        </div>
+        
+        <div class="modern-product-info">
+          <h3 class="modern-product-name">${item.item}</h3>
+          <p class="modern-product-desc">${item.description}</p>
+          
+          <div class="product-price-section">
+            <span class="modern-product-price">₦${parseFloat(item.price).toLocaleString()}</span>
+          </div>
+          
+          <div class="product-actions">
+            <button 
+              class="modern-add-cart-btn ${item.sold_out ? 'sold-out-btn' : ''} ${inCart ? 'in-cart' : ''}" 
+              data-idx="${idx}" 
+              ${item.sold_out ? 'disabled' : ''}
+            >
+              ${item.sold_out ? 
+                '<span>❌ Sold Out</span>' : 
+                inCart ? 
+                  '<span>✅ In Cart</span>' : 
+                  '<span>🛒 Add to Cart</span>'
+              }
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
-  // Add event listeners for Add to Cart buttons
-  const buttons = container.querySelectorAll('.add-cart-btn');
-  buttons.forEach(btn => {
-    // If button is disabled (sold out), skip adding event listener
-    if (btn.disabled) return;
-    btn.addEventListener('click', function() {
+  // Add event listeners
+  setupProductCardListeners();
+}
+
+function setupProductCardListeners() {
+  const container = document.getElementById('store-items');
+  if (!container) return;
+
+  // Add to cart buttons
+  container.querySelectorAll('.modern-add-cart-btn').forEach(btn => {
+    if (btn.disabled || btn.classList.contains('in-cart')) return;
+    
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
       const idx = parseInt(this.getAttribute('data-idx'));
+      const item = filteredItems[idx];
+      
       const cart = getCart();
-      cart.push(visibleItems[idx]);
-      setCart(cart);
-      updateCartCount();
-      this.textContent = 'Added!';
-      this.disabled = true;
-      setTimeout(() => {
-        this.textContent = 'Add to Cart';
-        this.disabled = false;
-      }, 1000);
+      if (!cart.find(i => i.item === item.item)) {
+        cart.push(item);
+        setCart(cart);
+        updateCartCount();
+        
+        // Update button state
+        this.innerHTML = '<span>✅ Added!</span>';
+        this.classList.add('in-cart');
+        this.disabled = true;
+        
+        // Show success feedback
+        showCartFeedback(item.item);
+        
+        setTimeout(() => {
+          // Re-render to update all buttons
+          renderProductCards();
+        }, 1500);
+      }
     });
   });
 
-  // Add event listeners for product image and title to open modal
-  container.querySelectorAll('.product-img, .product-name').forEach(el => {
-    el.addEventListener('click', function() {
+  // Quick view buttons
+  container.querySelectorAll('.quick-view-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
       const itemName = this.getAttribute('data-item');
       openProductModal(itemName);
     });
   });
+
+  // Product card clicks
+  container.querySelectorAll('.modern-product-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const itemName = this.getAttribute('data-item');
+      openProductModal(itemName);
+    });
+  });
+}
+
+function updateResultsCount() {
+  const resultsElement = document.getElementById('results-count');
+  if (!resultsElement) return;
+  
+  const total = currentItems.length;
+  const showing = filteredItems.length;
+  
+  if (showing === total) {
+    resultsElement.textContent = `Showing all ${total} products`;
+  } else {
+    resultsElement.textContent = `Showing ${showing} of ${total} products`;
+  }
+}
+
+function setupSearchAndFilters() {
+  const searchInput = document.getElementById('product-search');
+  const sortSelect = document.getElementById('sort-products');
+  const filterSelect = document.getElementById('filter-availability');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', debounce((e) => {
+      searchQuery = e.target.value;
+      applyFiltersAndSort();
+    }, 300));
+  }
+  
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      sortBy = e.target.value;
+      applyFiltersAndSort();
+    });
+  }
+  
+  if (filterSelect) {
+    filterSelect.addEventListener('change', (e) => {
+      filterBy = e.target.value;
+      applyFiltersAndSort();
+    });
+  }
+}
+
+function showCartFeedback(itemName) {
+  // Create temporary feedback element
+  const feedback = document.createElement('div');
+  feedback.className = 'cart-feedback';
+  feedback.innerHTML = `
+    <div class="cart-feedback-content">
+      <div class="cart-feedback-icon">🛒</div>
+      <div class="cart-feedback-text">
+        <strong>${itemName}</strong><br>
+        Added to cart!
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  // Remove after animation
+  setTimeout(() => {
+    feedback.remove();
+  }, 3000);
+}
+
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Legacy function for backwards compatibility
+function renderItems(items) {
+  renderModernItems(items);
 }
 
 // Add styles for sold out button and image

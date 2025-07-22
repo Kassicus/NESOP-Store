@@ -1,0 +1,88 @@
+{
+  "update_created": "2025-07-22T14:36:26.154951",
+  "update_version": "2.0.0-ui-overhaul",
+  "update_type": "rolling_update",
+  "target_deployment": "/opt/nesop-store",
+  "requires_restart": true,
+  "includes_migrations": false,
+  "backup_required": true,
+  "files_updated": [
+    {
+      "file": "admin-dashboard.html",
+      "hash": "87867558e0329071f008adcfad5959a562c0766bbf3d922dbbff6093c4ae5722",
+      "size": 21219
+    },
+    {
+      "file": "admin-users.html",
+      "hash": "8ff74c63e2efffc6df8e3a679142dae9a26b8802afae98c65fdd9b420920349a",
+      "size": 48155
+    },
+    {
+      "file": "admin-inventory.html",
+      "hash": "23e01c34faf1c590cdfe785285c7c41b8b2365dd9065794609c6637236ce977e",
+      "size": 38993
+    },
+    {
+      "file": "admin-transactions.html",
+      "hash": "92e147289c5fe44ec85932261fc02b5523c9ed8e37bd8c39fded1ea22eda0e53",
+      "size": 35826
+    },
+    {
+      "file": "admin.html",
+      "hash": "47fc37a804a46d0575258ec92d9558f844830638c79512bb7927c12578c71e34",
+      "size": 1662
+    },
+    {
+      "file": "cart.html",
+      "hash": "9dcaaa7f3942a10cd0766a4e8be70387a0aff2f0ec1c49c6628135654087dc69",
+      "size": 29612
+    },
+    {
+      "file": "account.html",
+      "hash": "cd2c379c67554c5dc5d795924c35bf62937be0dd15029b70407fe478558bd935",
+      "size": 31851
+    },
+    {
+      "file": "index.html",
+      "hash": "ffa9942705b6f89db975705ce83637a4da3084f3a449c3a9581ae42caa0435e6",
+      "size": 2605
+    },
+    {
+      "file": "scripts/store.js",
+      "hash": "7723feceaf1789ad211c799d0bdf6ee2c65468cab8af382f9953c3bfb879621c",
+      "size": 31394
+    },
+    {
+      "file": "server.py",
+      "hash": "ca3305144073c5224d85eaf031ed30c55e47a7c8217a6c1393dd42734dca5516",
+      "size": 46273
+    },
+    {
+      "file": "wsgi.py",
+      "hash": "8dc78560e8907da7948f49c6c5bb3f7ec7da41c060422338bb6130de445ae3f9",
+      "size": 6539
+    },
+    {
+      "file": "styles/main.css",
+      "hash": "29cd53fe11a4a3340b00ce074faa6a439e5c0fe8ffba7d70955d6211c0670db2",
+      "size": 22586
+    }
+  ],
+  "directories_updated": [
+    "scripts",
+    "styles",
+    "assets"
+  ],
+  "migrations_included": [],
+  "pre_update_checks": [
+    "Verify service is running",
+    "Check database connectivity",
+    "Verify disk space available"
+  ],
+  "post_update_checks": [
+    "Restart application service",
+    "Run database migrations",
+    "Validate application startup",
+    "Check service health"
+  ]
+}

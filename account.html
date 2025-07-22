@@ -10,175 +10,563 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon/apple-touch-icon.png"/>
   <link rel="stylesheet" href="styles/main.css"/>
   <style>
-    .account-container { 
-      max-width: 900px; 
-      margin: 40px auto; 
-      background: var(--color-card-bg); 
-      border-radius: var(--border-radius-base); 
-      box-shadow: 0 2px 8px var(--color-shadow); 
-      padding: 2rem; 
-      transition: background-color 0.3s ease; 
+    /* ========================================
+       MODERN ACCOUNT PAGE STYLES
+    ======================================== */
+
+    .account-main {
+      padding: 2rem 0;
+      min-height: calc(100vh - 200px);
     }
-    .account-container h2 { 
-      color: #1976d2; 
-      margin-top: 0; 
+
+    /* Account Header */
+    .account-header {
+      margin-bottom: 3rem;
     }
-    .balance-display {
-      background: var(--color-border-light);
-      border: 2px solid #1976d2;
-      border-radius: 8px;
-      padding: 1.5rem;
-      text-align: center;
-      margin-bottom: 2rem;
-      transition: background-color 0.3s ease;
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2rem;
+      background: var(--color-card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 16px var(--color-shadow);
+      border: 2px solid rgba(25, 118, 210, 0.1);
     }
-    .balance-amount {
-      font-size: 2rem;
-      font-weight: bold;
+
+    .account-header h1 {
       color: #1976d2;
       margin: 0;
+      font-size: 2.2rem;
+      font-weight: 700;
     }
-    .balance-label {
-      font-size: 1.2rem;
+
+    .user-info-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: rgba(25, 118, 210, 0.1);
+      border-radius: 12px;
+      border: 2px solid rgba(25, 118, 210, 0.2);
+    }
+
+    .user-avatar {
+      width: 48px;
+      height: 48px;
+      background: #1976d2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .user-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1976d2;
+      text-transform: capitalize;
+    }
+
+    .user-status {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    /* Account Dashboard Layout */
+    .account-dashboard {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    /* Balance Section */
+    .balance-section {
+      position: sticky;
+      top: 2rem;
+    }
+
+    .modern-balance-card {
+      background: var(--color-card-bg);
+      border-radius: 20px;
+      box-shadow: 0 8px 24px var(--color-shadow);
+      padding: 2.5rem;
+      border: 2px solid rgba(25, 118, 210, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .modern-balance-card:hover {
+      box-shadow: 0 12px 32px var(--color-shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .balance-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .balance-header h2 {
       color: var(--color-fg);
-      margin: 0.5rem 0 0 0;
-      transition: color 0.3s ease;
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: 600;
     }
-    .transaction-section {
-      margin-top: 2rem;
+
+    .balance-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(25, 118, 210, 0.1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1976d2;
     }
-    .transaction-table { 
-      border-collapse: collapse; 
-      width: 100%; 
-      margin-bottom: 1rem; 
+
+    .balance-amount-container {
+      text-align: center;
+      margin-bottom: 2rem;
     }
-    .transaction-table th, .transaction-table td { 
-      padding: 0.75rem; 
-      border: 1px solid var(--color-border); 
-      transition: border-color 0.3s ease; 
+
+    .modern-balance-amount {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: #1976d2;
+      display: block;
+      margin: 0;
+      line-height: 1;
     }
-    .transaction-table th { 
-      background: var(--color-table-header); 
-      color: #1976d2; 
-      font-weight: bold; 
-      transition: background-color 0.3s ease; 
+
+    .balance-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
-    .transaction-table td { 
-      background: var(--color-card-bg); 
-      color: var(--color-fg); 
-      transition: background-color 0.3s ease, color 0.3s ease; 
+
+    .action-btn {
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      border: none;
+      text-decoration: none;
     }
-    .scrollable-container {
+
+    .action-btn.primary {
+      background: #1976d2;
+      color: white;
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .action-btn.primary:hover {
+      background: #1565c0;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+    }
+
+    .action-btn.secondary {
+      background: var(--color-card-bg);
+      color: #1976d2;
+      border: 2px solid #1976d2;
+      box-shadow: 0 2px 8px var(--color-shadow);
+    }
+
+    .action-btn.secondary:hover {
+      background: #1976d2;
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .action-btn svg {
+      stroke: currentColor;
+    }
+
+    /* Transactions Section */
+    .transactions-section {
+      min-height: 400px;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+    }
+
+    .section-header h2 {
+      color: var(--color-fg);
+      margin: 0 0 0.5rem 0;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .section-description {
+      color: var(--color-text-secondary);
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    .modern-transaction-container {
+      background: var(--color-card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 16px var(--color-shadow);
+      border: 2px solid rgba(25, 118, 210, 0.1);
+      overflow: hidden;
+    }
+
+    /* Transaction Table */
+    .transaction-table-wrapper {
       max-height: 500px;
       overflow-y: auto;
-      margin-bottom: 1rem;
       scrollbar-width: thin;
       scrollbar-color: #1976d2 var(--color-border-light);
     }
-    .scrollable-container::-webkit-scrollbar {
+
+    .transaction-table-wrapper::-webkit-scrollbar {
       width: 8px;
+    }
+
+    .transaction-table-wrapper::-webkit-scrollbar-track {
       background: var(--color-border-light);
     }
-    .scrollable-container::-webkit-scrollbar-thumb {
+
+    .transaction-table-wrapper::-webkit-scrollbar-thumb {
       background: #1976d2;
       border-radius: 6px;
     }
-    .scrollable-container::-webkit-scrollbar-thumb:hover {
-      background: #125ea7;
+
+    .transaction-table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: #1565c0;
     }
-    .transaction-table th {
+
+    .modern-transaction-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0;
+    }
+
+    .modern-transaction-table thead {
       position: sticky;
       top: 0;
-      z-index: 2;
-      background: var(--color-table-header);
-      transition: background-color 0.3s ease;
+      z-index: 10;
     }
+
+    .modern-transaction-table th {
+      background: var(--color-table-header);
+      color: #1976d2;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1.25rem 1rem;
+      text-align: left;
+      border: none;
+      border-bottom: 2px solid rgba(25, 118, 210, 0.2);
+    }
+
+    .modern-transaction-table td {
+      padding: 1rem;
+      border: none;
+      border-bottom: 1px solid var(--color-border-light);
+      color: var(--color-fg);
+      font-size: 0.95rem;
+    }
+
+    .modern-transaction-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .modern-transaction-table tr:hover {
+      background: rgba(25, 118, 210, 0.05);
+    }
+
+    /* Transaction Amount Styling */
     .amount-positive {
       color: #4caf50;
-      font-weight: bold;
+      font-weight: 700;
     }
+
     .amount-negative {
-      color: #e57373;
-      font-weight: bold;
+      color: #f44336;
+      font-weight: 700;
     }
+
+    /* Transaction Type Badges */
     .transaction-type {
-      padding: 0.2rem 0.6rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: bold;
+      display: inline-block;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
+
     .type-admin-add {
-      background: var(--color-info-bg, #2196f3);
+      background: #2196f3;
       color: white;
     }
+
     .type-bulk-add {
-      background: var(--color-success-bg, #4caf50);
+      background: #4caf50;
       color: white;
     }
+
     .type-initial-balance {
-      background: var(--color-warning-bg, #ff9800);
+      background: #ff9800;
       color: white;
     }
+
     .type-purchase {
-      background: var(--color-error-bg, #f44336);
+      background: #f44336;
       color: white;
     }
+
     .note-cell {
       max-width: 250px;
       word-wrap: break-word;
       font-style: italic;
+      color: var(--color-text-secondary);
     }
-    .pagination {
+
+    /* Modern Empty State */
+    .modern-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.6;
+    }
+
+    .modern-empty-state h3 {
+      color: var(--color-fg);
+      font-size: 1.6rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 600;
+    }
+
+    .modern-empty-state p {
+      color: var(--color-text-secondary);
+      font-size: 1rem;
+      margin: 0 0 2rem 0;
+      line-height: 1.5;
+    }
+
+    .get-started-btn {
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 1rem 2rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
       display: flex;
       align-items: center;
-      gap: 1rem;
-      justify-content: center;
-      margin-top: 1rem;
+      gap: 0.75rem;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
     }
-    .pagination button {
-      background: #1976d2;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 0.5rem 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
+
+    .get-started-btn:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
     }
-    .pagination button:hover {
-      background: #125ea7;
+
+    .get-started-btn svg {
+      stroke: currentColor;
     }
-    .pagination button:disabled {
-      background: #b3c6e0;
-      cursor: not-allowed;
+
+    /* Modern Pagination */
+    .modern-pagination {
+      padding: 1.5rem 2rem;
+      border-top: 1px solid var(--color-border-light);
     }
-    .nav-buttons {
+
+    .pagination-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pagination-buttons {
       display: flex;
       gap: 1rem;
-      margin-bottom: 1rem;
     }
-    .page-nav-btn {
-      background: #1976d2;
-      color: #fff;
-      border: none;
-      border-radius: var(--border-radius-base);
-      padding: 0.75rem 1.5rem;
-      font-weight: bold;
+
+    .pagination-btn {
+      background: var(--color-card-bg);
+      color: #1976d2;
+      border: 2px solid #1976d2;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-weight: 600;
       cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      transition: background 0.2s;
-      font-size: 1rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
     }
-    .page-nav-btn:hover {
-      background: #125ea7;
+
+    .pagination-btn:hover:not(:disabled) {
+      background: #1976d2;
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
     }
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
+
+    .pagination-btn:disabled {
+      background: var(--color-border-light);
+      color: var(--color-text-secondary);
+      border-color: var(--color-border);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .pagination-btn svg {
+      stroke: currentColor;
+    }
+
+    .pagination-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+      font-size: 0.9rem;
+    }
+
+    .pagination-info span:first-child {
       color: var(--color-fg);
-      font-style: italic;
+      font-weight: 600;
+    }
+
+    .total-count {
+      color: var(--color-text-secondary);
+      font-size: 0.8rem;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .account-main {
+        padding: 1rem 0;
+      }
+
+      .header-content {
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: flex-start;
+        padding: 1.5rem;
+      }
+
+      .account-header h1 {
+        font-size: 1.8rem;
+      }
+
+      .user-info-card {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .account-dashboard {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .balance-section {
+        position: static;
+        order: -1;
+      }
+
+      .modern-balance-card {
+        padding: 2rem;
+      }
+
+      .modern-balance-amount {
+        font-size: 2.4rem;
+      }
+
+      .pagination-controls {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .pagination-info {
+        align-items: center;
+        text-align: center;
+      }
+
+      .modern-transaction-table th,
+      .modern-transaction-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .account-dashboard {
+        gap: 1.5rem;
+      }
+
+      .modern-balance-card {
+        padding: 1.5rem;
+      }
+
+      .modern-balance-amount {
+        font-size: 2rem;
+      }
+
+      .action-btn {
+        padding: 0.875rem 1.25rem;
+        font-size: 0.95rem;
+      }
+
+      .section-header h2 {
+        font-size: 1.5rem;
+      }
+
+      .modern-transaction-table {
+        font-size: 0.8rem;
+      }
+
+      .modern-transaction-table th,
+      .modern-transaction-table td {
+        padding: 0.625rem 0.375rem;
+      }
+
+      .transaction-type {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
+      }
+
+      .note-cell {
+        max-width: 150px;
+      }
     }
 
     /* Consistent Navigation Styles */
@@ -259,6 +647,7 @@
       display: flex;
     }
   </style>
+  </style>
 </head>
 <body>
   <header class="store-header">
@@ -324,51 +713,113 @@
     </div>
   </header>
 
-  <div class="account-container">
-    <h2>My Account</h2>
-    
-    <!-- Balance Display -->
-    <div class="balance-display">
-                  <p class="balance-amount" id="user-balance">₦0.00</p>
-      <p class="balance-label">Current Balance</p>
-    </div>
-
-    <!-- Navigation -->
-    <div class="nav-buttons">
-      <a href="index.html" class="page-nav-btn">Browse Store</a>
-      <a href="cart.html" class="page-nav-btn">Shopping Cart</a>
-    </div>
-
-    <!-- Transaction History -->
-    <div class="transaction-section">
-      <h3 style="color: #1976d2;">Transaction History</h3>
-      <p style="color: var(--color-fg); margin-bottom: 1.5rem;">View all your currency additions and spending history.</p>
-      
-      <div class="scrollable-container">
-        <table class="transaction-table">
-          <thead>
-            <tr>
-              <th>Date/Time</th>
-              <th>Amount</th>
-              <th>Type</th>
-              <th>Note</th>
-              <th>Added By</th>
-            </tr>
-          </thead>
-          <tbody id="transaction-history-tbody">
-            <!-- Transaction rows will be populated here -->
-          </tbody>
-        </table>
+  <main class="account-main">
+    <div class="container">
+      <!-- Account Header -->
+      <div class="account-header">
+        <div class="header-content">
+          <h1>My Account</h1>
+          <div class="user-info-card">
+            <div class="user-avatar">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="user-details">
+              <span id="account-welcome-modern" class="user-name"></span>
+              <span class="user-status">Active Account</span>
+            </div>
+          </div>
+        </div>
       </div>
-      
-      <div id="transaction-empty-state" class="empty-state" style="display: none;">
-        <p>No transactions found.</p>
-        <p>Currency additions and other account activities will appear here.</p>
+
+      <!-- Account Dashboard -->
+      <div class="account-dashboard">
+        <!-- Balance Section -->
+        <div class="balance-section">
+          <div class="modern-balance-card">
+            <div class="balance-header">
+              <h2>Current Balance</h2>
+              <div class="balance-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="14.31" y1="8" x2="20.05" y2="17.94"></line>
+                  <line x1="9.69" y1="8" x2="21.17" y2="8"></line>
+                  <line x1="7.38" y1="12" x2="13.12" y2="2.06"></line>
+                  <line x1="9.69" y1="16" x2="3.95" y2="6.06"></line>
+                  <line x1="14.31" y1="16" x2="2.83" y2="16"></line>
+                  <line x1="16.62" y1="12" x2="10.88" y2="21.94"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="balance-amount-container">
+              <span class="modern-balance-amount" id="user-balance">₦0.00</span>
+            </div>
+            <div class="balance-actions">
+              <button onclick="window.location.href='index.html'" class="action-btn primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9,22 9,12 15,12 15,22"></polyline>
+                </svg>
+                Shop Now
+              </button>
+              <button onclick="window.location.href='cart.html'" class="action-btn secondary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                View Cart
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transaction History Section -->
+        <div class="transactions-section">
+          <div class="section-header">
+            <h2>Transaction History</h2>
+            <p class="section-description">Track all your account activity and purchases</p>
+          </div>
+          
+          <div class="modern-transaction-container">
+            <div class="transaction-table-wrapper">
+              <table class="modern-transaction-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Added By</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-history-tbody">
+                  <!-- Transaction rows will be populated here -->
+                </tbody>
+              </table>
+            </div>
+            
+            <div id="transaction-empty-state" class="modern-empty-state" style="display: none;">
+              <div class="empty-icon">📊</div>
+              <h3>No transactions yet</h3>
+              <p>Your currency additions and purchase history will appear here.</p>
+              <button onclick="window.location.href='index.html'" class="get-started-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9,22 9,12 15,12 15,22"></polyline>
+                </svg>
+                Start Shopping
+              </button>
+            </div>
+            
+            <div id="transaction-pagination" class="modern-pagination"></div>
+          </div>
+        </div>
       </div>
-      
-      <div id="transaction-pagination" class="pagination"></div>
     </div>
-  </div>
+  </main>
 
   <script>
     // Global variables
@@ -445,7 +896,7 @@
 
       // Set welcome message
       const displayUsername = extractUsername(currentUser);
-      document.getElementById('account-welcome').innerHTML = `Account for <b style="text-transform:capitalize;">${capitalizeFirstLetter(displayUsername)}</b>`;
+      document.getElementById('account-welcome-modern').textContent = capitalizeFirstLetter(displayUsername);
 
       // Initialize navigation
       initializeNavigation();
@@ -500,6 +951,7 @@
     function renderTransactionHistory(transactions) {
       const tbody = document.getElementById('transaction-history-tbody');
       const emptyState = document.getElementById('transaction-empty-state');
+      const tableWrapper = tbody.closest('.transaction-table-wrapper');
       
       if (!transactions || transactions.length === 0) {
         showEmptyState();
@@ -508,7 +960,9 @@
 
       // Hide empty state and show table
       emptyState.style.display = 'none';
-      tbody.parentElement.parentElement.style.display = 'block';
+      if (tableWrapper) {
+        tableWrapper.style.display = 'block';
+      }
 
       let html = '';
       transactions.forEach(tx => {
@@ -537,10 +991,13 @@
     function showEmptyState() {
       const emptyState = document.getElementById('transaction-empty-state');
       const tbody = document.getElementById('transaction-history-tbody');
+      const tableWrapper = tbody.closest('.transaction-table-wrapper');
       
       tbody.innerHTML = '';
-      tbody.parentElement.parentElement.style.display = 'none';
-      emptyState.style.display = 'block';
+      if (tableWrapper) {
+        tableWrapper.style.display = 'none';
+      }
+      emptyState.style.display = 'flex';
       
       // Clear pagination
       document.getElementById('transaction-pagination').innerHTML = '';
@@ -558,24 +1015,61 @@
       const currentPage = Math.floor(offset / limit) + 1;
       const totalPages = Math.ceil(totalCount / limit);
       
-      let html = '';
+      let html = `
+        <div class="pagination-controls">
+          <div class="pagination-buttons">
+      `;
       
       // Previous button
       if (currentPage > 1) {
-        html += `<button onclick="loadTransactionHistory(${(currentPage - 2) * limit})">← Previous</button>`;
+        html += `
+          <button class="pagination-btn" onclick="loadTransactionHistory(${(currentPage - 2) * limit})">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+            Previous
+          </button>
+        `;
       } else {
-        html += `<button disabled>← Previous</button>`;
+        html += `
+          <button class="pagination-btn" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+            Previous
+          </button>
+        `;
       }
-      
-      // Page info
-      html += `<span>Page ${currentPage} of ${totalPages} (${totalCount} total)</span>`;
       
       // Next button
       if (currentPage < totalPages) {
-        html += `<button onclick="loadTransactionHistory(${currentPage * limit})">Next →</button>`;
+        html += `
+          <button class="pagination-btn" onclick="loadTransactionHistory(${currentPage * limit})">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"></path>
+            </svg>
+          </button>
+        `;
       } else {
-        html += `<button disabled>Next →</button>`;
+        html += `
+          <button class="pagination-btn" disabled>
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"></path>
+            </svg>
+          </button>
+        `;
       }
+      
+      html += `
+          </div>
+          <div class="pagination-info">
+            <span>Page ${currentPage} of ${totalPages}</span>
+            <span class="total-count">${totalCount} transactions</span>
+          </div>
+        </div>
+      `;
       
       paginationDiv.innerHTML = html;
     }
