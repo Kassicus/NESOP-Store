@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import logging
+from datetime import datetime
 
 # Get the absolute path to the database file
 # Default to development database, can be overridden by deployment config
@@ -691,12 +692,13 @@ def add_currency_with_transaction_log(username, amount, transaction_type, note, 
         # Update user balance
         c.execute('UPDATE users SET balance = ? WHERE username = ?', (new_balance, username))
         
-        # Log the transaction
+        # Log the transaction with explicit local timestamp
+        local_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         c.execute('''
             INSERT INTO currency_transactions 
-            (username, amount, transaction_type, note, added_by)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (username, amount, transaction_type, note, added_by))
+            (username, amount, transaction_type, note, added_by, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (username, amount, transaction_type, note, added_by, local_timestamp))
         
         transaction_id = c.lastrowid
         
@@ -767,12 +769,13 @@ def add_currency_to_all_users_with_note(amount, note, added_by):
             # Update user balance
             c.execute('UPDATE users SET balance = ? WHERE username = ?', (new_balance, username))
             
-            # Log the transaction
+            # Log the transaction with explicit local timestamp
+            local_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             c.execute('''
                 INSERT INTO currency_transactions 
-                (username, amount, transaction_type, note, added_by)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (username, amount, 'bulk_add', note, added_by))
+                (username, amount, transaction_type, note, added_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (username, amount, 'bulk_add', note, added_by, local_timestamp))
             
             transaction_ids.append(c.lastrowid)
             updated_count += 1

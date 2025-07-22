@@ -27,6 +27,9 @@ function showLoginForm() {
           <button type="submit" class="login-btn" style="margin-bottom:0.7em;width:85%;">Login</button>
           <div id="login-error" style="color:red;margin-top:8px;text-align:center;"></div>
         </form>
+        <div class="login-footer" style="text-align:center;margin-top:2rem;color:#666;font-size:0.9rem;opacity:0.8;">
+          Made with ❤️ by the ESOP Committee
+        </div>
       </div>
     </div>
   `;

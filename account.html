@@ -792,7 +792,6 @@
                     <th>Amount</th>
                     <th>Type</th>
                     <th>Description</th>
-                    <th>Added By</th>
                   </tr>
                 </thead>
                 <tbody id="transaction-history-tbody">
@@ -979,7 +978,6 @@
             <td class="${amountClass}">${amountDisplay}</td>
             <td><span class="transaction-type ${typeClass}">${typeDisplay}</span></td>
             <td class="note-cell">${tx.note || '-'}</td>
-            <td>${tx.added_by}</td>
           </tr>
         `;
       });

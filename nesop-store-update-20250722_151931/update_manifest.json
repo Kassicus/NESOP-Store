@@ -1,0 +1,33 @@
+{
+  "update_created": "2025-07-22T15:19:31.927694",
+  "update_version": "auto",
+  "update_type": "rolling_update",
+  "target_deployment": "/opt/nesop-store",
+  "requires_restart": true,
+  "includes_migrations": false,
+  "backup_required": true,
+  "files_updated": [
+    {
+      "file": "cart.html",
+      "hash": "ca0268f0130b09d1362c3239c1401190fccb8ac48ef03a11232377c611fa323e",
+      "size": 40102
+    }
+  ],
+  "directories_updated": [
+    "scripts",
+    "styles",
+    "assets"
+  ],
+  "migrations_included": [],
+  "pre_update_checks": [
+    "Verify service is running",
+    "Check database connectivity",
+    "Verify disk space available"
+  ],
+  "post_update_checks": [
+    "Restart application service",
+    "Run database migrations",
+    "Validate application startup",
+    "Check service health"
+  ]
+}

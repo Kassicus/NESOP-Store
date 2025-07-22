@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NESOP Store - Cart</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon/favicon.ico"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/favicon/apple-touch-icon.png"/>
+  <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    /* Consistent Navigation Styles */
+    .nav-btn {
+      background: #64b5f6;
+      border: 2px solid #64b5f6;
+      border-radius: 8px;
+      padding: 0.6rem;
+      cursor: pointer;
+      color: white;
+      transition: all 0.3s ease;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .nav-btn:hover {
+      background: #42a5f5;
+      border-color: #42a5f5;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .nav-btn svg {
+      stroke: currentColor;
+      fill: none;
+    }
+    
+    .nav-btn.logout-btn {
+      background: #f44336;
+      border-color: #f44336;
+      color: white;
+    }
+    
+    .nav-btn.logout-btn:hover {
+      background: #d32f2f;
+      border-color: #d32f2f;
+      color: white;
+    }
+    
+    .nav-btn-active {
+      background: white !important;
+      border-color: #1976d2 !important;
+      color: #1976d2 !important;
+    }
+    
+    .nav-btn-active:hover {
+      background: #f5f5f5 !important;
+      border-color: #1976d2 !important;
+      color: #1976d2 !important;
+    }
+    
+    .cart-count-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #f44336;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+    }
+    
+    .admin-only {
+      display: none;
+    }
+    
+    .admin-only.show {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <header class="store-header">
+    <div class="container">
+      <div style="display: flex; justify-content: center; align-items: center; width: 60px; height: 60px; background-color: #fff; border-radius: 50%; margin: 0; padding: 0;">
+        <img src="assets/images/nesop-logo.png" alt="NESOP Logo" class="nesop-logo" style="width: 40px; height: 40px; margin: 0; padding: 0;">
+      </div>
+      <div class="user-info" style="display: flex; justify-content: center; align-items: center; flex-direction: row; margin-top: 0.5rem; margin-bottom: 0.5rem; width: 100%;">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; margin-left: 2rem;">
+          <span id="cart-welcome" style="font-size:1.25em; margin-left: 0; padding-left: 0;"></span>
+        </div>
+        <nav class="header-nav" style="display: flex; align-items: center; gap: 0.5rem;">
+          <!-- User Account -->
+          <button onclick="window.location.href='account.html'" class="nav-btn" title="My Account">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
+          
+          <!-- Cart (current page, different styling) -->
+          <button class="nav-btn nav-btn-active" title="Shopping Cart">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span id="cart-count-badge" class="cart-count-badge">0</span>
+          </button>
+          
+          <!-- Store -->
+          <button onclick="window.location.href='index.html'" class="nav-btn" title="Store">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9,22 9,12 15,12 15,22"></polyline>
+            </svg>
+          </button>
+          
+          <!-- Theme Toggle -->
+          <button type="button" data-theme-toggle aria-label="Change theme" class="nav-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+          
+          <!-- Admin (visible to admins only) -->
+          <button onclick="window.location.href='admin-dashboard.html'" class="nav-btn admin-only" title="Admin Panel">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"></path>
+            </svg>
+          </button>
+          
+          <!-- Logout -->
+          <button id="logout-btn" class="nav-btn logout-btn" title="Logout">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4"></path>
+              <polyline points="16,17 21,12 16,7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <div id="cart-app"></div>
+  <script>
+    // Modal functions for order status
+    function showOrderModal(isSuccess, title, content) {
+      const modal = document.createElement('div');
+      modal.className = 'order-modal-overlay';
+      modal.innerHTML = `
+        <div class="order-modal ${isSuccess ? 'success-modal' : 'error-modal'}">
+          <div class="order-modal-header">
+            <h3>${title}</h3>
+            <button class="modal-close-btn" onclick="closeOrderModal()">&times;</button>
+          </div>
+          <div class="order-modal-content">
+            ${content}
+          </div>
+          <div class="order-modal-footer">
+            ${isSuccess ? 
+              '<button class="modal-btn primary" onclick="closeOrderModal(); window.location.href=\'index.html\'">Continue Shopping</button>' : 
+              '<button class="modal-btn secondary" onclick="closeOrderModal()">Try Again</button>'
+            }
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Fade in animation
+      setTimeout(() => {
+        modal.classList.add('show');
+      }, 10);
+      
+      // Auto close success modal after 10 seconds
+      if (isSuccess) {
+        setTimeout(() => {
+          if (document.body.contains(modal)) {
+            closeOrderModal();
+          }
+        }, 10000);
+      }
+    }
+    
+    function closeOrderModal() {
+      const modal = document.querySelector('.order-modal-overlay');
+      if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+          if (document.body.contains(modal)) {
+            document.body.removeChild(modal);
+          }
+        }, 300);
+      }
+    }
+
+    function getCart() {
+      return JSON.parse(localStorage.getItem('nesop_cart') || '[]');
+    }
+    function setCart(cart) {
+      localStorage.setItem('nesop_cart', JSON.stringify(cart));
+    }
+    function removeFromCart(idx) {
+      const cart = getCart();
+      cart.splice(idx, 1);
+      setCart(cart);
+      renderCart();
+    }
+    function getCurrentUser() {
+      return localStorage.getItem('nesop_user') || '';
+    }
+    function getUserBalance(users, username) {
+      const user = users.find(u => u.username === username);
+      return user ? parseFloat(user.balance) : 0;
+    }
+    function setUserBalance(users, username, newBalance) {
+      const idx = users.findIndex(u => u.username === username);
+      if (idx !== -1) {
+        users[idx].balance = newBalance;
+      }
+      return users;
+    }
+    function downloadOrderFile(orderText, username) {
+      const blob = new Blob([orderText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `order_${username}_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }
+    function renderCart() {
+      const cart = getCart();
+      let total = 0;
+      let itemsHtml = '';
+      if (cart.length === 0) {
+        itemsHtml = `
+          <div class="empty-cart-state">
+            <div class="empty-cart-icon">🛒</div>
+            <h3>Your cart is empty</h3>
+            <p>Discover our amazing products and add them to your cart!</p>
+            <button onclick="window.location.href='index.html'" class="continue-shopping-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9,22 9,12 15,12 15,22"></polyline>
+              </svg>
+              Continue Shopping
+            </button>
+          </div>
+        `;
+        renderCartHtml(itemsHtml, total, cart.length);
+      } else {
+        // Fetch latest items from API to get up-to-date image paths
+        fetch('/api/items')
+          .then(res => res.json())
+          .then(data => {
+            const items = data.items || [];
+            itemsHtml = cart.map((cartItem, idx) => {
+              // Find the latest item info by name
+              const latest = items.find(i => i.item === cartItem.item);
+              const imageSrc = latest && latest.image ? latest.image : (cartItem.image || 'assets/images/placeholder.png');
+              total += parseFloat(cartItem.price);
+              return `
+                <div class="modern-cart-item">
+                  <div class="cart-item-image-container">
+                    <img src="${imageSrc}" alt="${cartItem.item}" class="modern-cart-item-img" />
+                  </div>
+                  <div class="modern-cart-item-info">
+                    <h4 class="modern-cart-item-title">${cartItem.item}</h4>
+                    <p class="modern-cart-item-desc">${cartItem.description}</p>
+                    <div class="cart-item-actions">
+                      <div class="modern-cart-item-price">₦${parseFloat(cartItem.price).toLocaleString()}</div>
+                      <button class="modern-remove-btn" onclick="removeFromCart(${idx})" title="Remove from cart">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3,6 5,6 21,6"></polyline>
+                          <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            renderCartHtml(itemsHtml, total, cart.length);
+          })
+          .catch(() => {
+            // fallback: render with possibly stale images
+            itemsHtml = cart.map((item, idx) => {
+              total += parseFloat(item.price);
+              return `
+                <div class="modern-cart-item">
+                  <div class="cart-item-image-container">
+                    <img src="${item.image || 'assets/images/placeholder.png'}" alt="${item.item}" class="modern-cart-item-img" />
+                  </div>
+                  <div class="modern-cart-item-info">
+                    <h4 class="modern-cart-item-title">${item.item}</h4>
+                    <p class="modern-cart-item-desc">${item.description}</p>
+                    <div class="cart-item-actions">
+                      <div class="modern-cart-item-price">₦${parseFloat(item.price).toLocaleString()}</div>
+                      <button class="modern-remove-btn" onclick="removeFromCart(${idx})" title="Remove from cart">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3,6 5,6 21,6"></polyline>
+                          <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            renderCartHtml(itemsHtml, total, cart.length);
+          });
+      }
+    }
+    // Helper to render cart HTML and set up checkout button
+    function renderCartHtml(itemsHtml, total, cartLength) {
+      document.getElementById('cart-app').innerHTML = `
+        <main class="cart-main">
+          <div class="container">
+            <!-- Cart Header -->
+            <div class="cart-header">
+              <h1>Shopping Cart</h1>
+              <div class="cart-summary">
+                <div class="cart-summary-item">
+                  <span class="summary-label">Items:</span>
+                  <span class="summary-value">${cartLength}</span>
+                </div>
+                <div class="cart-summary-item">
+                  <span class="summary-label">Total:</span>
+                  <span class="summary-value">₦${total.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cart Content -->
+            <div class="cart-content">
+              <!-- Cart Items Section -->
+              <div class="cart-items-section">
+                <div class="section-header">
+                  <h2>Your Items</h2>
+                  ${cartLength > 0 ? `<span class="item-count">${cartLength} ${cartLength === 1 ? 'item' : 'items'}</span>` : ''}
+                </div>
+                <div class="modern-cart-list">${itemsHtml}</div>
+              </div>
+
+              <!-- Checkout Section -->
+              ${cartLength > 0 ? `
+                <div class="checkout-section">
+                  <div class="checkout-card">
+                    <h3>Order Summary</h3>
+                    <div class="order-summary">
+                      <div class="summary-row">
+                        <span>Subtotal (${cartLength} ${cartLength === 1 ? 'item' : 'items'}):</span>
+                        <span class="price">₦${total.toLocaleString()}</span>
+                      </div>
+                      <div class="summary-row total-row">
+                        <span>Total:</span>
+                        <span class="price total-price">₦${total.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    
+                    <button class="modern-checkout-btn" id="checkout-btn">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4"></path>
+                        <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"></path>
+                        <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"></path>
+                      </svg>
+                      Complete Purchase
+                    </button>
+                    
+                    <div class="purchase-info">
+                      <p>🔒 Your order will be processed securely</p>
+                      <p>📧 You'll receive a confirmation email</p>
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Checkout Message -->
+            <div id="checkout-message" class="checkout-message"></div>
+          </div>
+        </main>
+      `;
+      if (cartLength > 0) {
+        const checkoutBtn = document.getElementById('checkout-btn');
+        if (checkoutBtn) {
+          checkoutBtn.onclick = function() {
+          // Disable button and show loading state
+          checkoutBtn.disabled = true;
+          const originalContent = checkoutBtn.innerHTML;
+          checkoutBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spinning">
+              <path d="M21 12a9 9 0 11-6.219-8.56"></path>
+            </svg>
+            Processing...
+          `;
+          checkoutBtn.style.opacity = '0.7';
+          checkoutBtn.style.cursor = 'not-allowed';
+          
+          // Place order using new API endpoint
+          const username = getCurrentUser();
+          const cartItems = getCart();
+          
+          fetch('/api/place-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              username: username,
+              items: cartItems,
+              total: total
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              // Clear cart and update display
+              setCart([]);
+              renderCart();
+              
+              // Update user balance in local storage
+              fetch('/api/users')
+                .then(res => res.json())
+                .then(userData => {
+                  const users = userData.users || [];
+                  setUserBalance(users, username, data.new_balance);
+                })
+                .catch(() => {
+                  // Ignore error, balance will be correct on next page load
+                });
+              
+              // Show success modal
+              const emailStatus = data.email_sent ? 'Fulfillment team has been notified!' : 'Order confirmed (fulfillment team notification failed)';
+              showOrderModal(
+                true,
+                'Order Placed Successfully!',
+                `<div class="order-success-content">
+                  <div class="success-icon">✅</div>
+                  <div class="order-details">
+                    <p><strong>Order ID:</strong> ${data.order_id}</p>
+                    <p><strong>Total:</strong> ₦${total.toLocaleString()}</p>
+                    <p><strong>Status:</strong> ${emailStatus}</p>
+                  </div>
+                  <p class="success-message">Thank you for your purchase! You can track your order status or contact support if needed.</p>
+                </div>`
+              );
+            } else {
+              // Re-enable button on failure
+              checkoutBtn.disabled = false;
+              checkoutBtn.innerHTML = originalContent;
+              checkoutBtn.style.opacity = '1';
+              checkoutBtn.style.cursor = 'pointer';
+              
+              // Show error modal
+              showOrderModal(
+                false,
+                'Order Failed',
+                `<div class="order-error-content">
+                  <div class="error-icon">❌</div>
+                  <p class="error-message">Failed to place order: ${data.error || 'Unknown error occurred'}</p>
+                  <p class="retry-message">Please try again or contact support if the problem persists.</p>
+                </div>`
+              );
+            }
+          })
+          .catch(error => {
+            console.error('Order placement error:', error);
+            
+            // Re-enable button on error
+            checkoutBtn.disabled = false;
+            checkoutBtn.innerHTML = originalContent;
+            checkoutBtn.style.opacity = '1';
+            checkoutBtn.style.cursor = 'pointer';
+            
+            // Show error modal
+            showOrderModal(
+              false,
+              'Order Failed',
+              `<div class="order-error-content">
+                <div class="error-icon">❌</div>
+                <p class="error-message">Failed to place order. Please check your connection and try again.</p>
+                <p class="retry-message">If the problem persists, please contact support.</p>
+              </div>`
+            );
+          });
+          };
+        }
+      }
+    }
+    renderCart();
+    // Utility to capitalize the first letter of a string
+    function capitalizeFirstLetter(str) {
+      if (!str) return '';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+    function initializeNavigation() {
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) {
+        logoutBtn.onclick = function() {
+          localStorage.removeItem('nesop_user');
+          localStorage.removeItem('nesop_user_admin');
+          window.location.href = 'index.html';
+        };
+      }
+
+      // Check if user is admin and show admin button
+      const currentUser = localStorage.getItem('nesop_user');
+      if (currentUser) {
+        fetch('/api/check-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.is_admin) {
+            const adminBtn = document.querySelector('.admin-only');
+            if (adminBtn) {
+              adminBtn.classList.add('show');
+            }
+          }
+        })
+        .catch(error => console.error('Error checking admin status:', error));
+      }
+
+      // Load and display cart count
+      updateCartCount();
+    }
+
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('nesop_cart') || '[]');
+      const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+      const cartBadge = document.getElementById('cart-count-badge');
+      
+      if (cartBadge) {
+        cartBadge.textContent = cartCount;
+        cartBadge.style.display = cartCount > 0 ? 'flex' : 'none';
+      }
+    }
+
+    // Set welcome message with username and initialize navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      const username = localStorage.getItem('nesop_user') || '';
+      const displayUsername = extractUsername(username);
+      document.getElementById('cart-welcome').innerHTML = `Welcome <b style=\"text-transform:capitalize;\">${capitalizeFirstLetter(displayUsername)}</b>!`;
+      
+      // Initialize navigation
+      initializeNavigation();
+    });
+  </script>
+  <style>
+    /* ========================================
+       MODERN CART STYLES
+    ======================================== */
+
+    .cart-main {
+      padding: 2rem 0;
+      min-height: calc(100vh - 200px);
+    }
+
+    /* Cart Header */
+    .cart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid var(--color-border-light);
+    }
+
+    .cart-header h1 {
+      color: #1976d2;
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .cart-summary {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .cart-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--color-card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px var(--color-shadow);
+      border: 2px solid transparent;
+    }
+
+    .summary-label {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .summary-value {
+      font-weight: 700;
+      color: #1976d2;
+      font-size: 1.1rem;
+    }
+
+    /* Cart Content Layout */
+    .cart-content {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    /* Cart Items Section */
+    .cart-items-section {
+      min-height: 200px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header h2 {
+      color: var(--color-fg);
+      margin: 0;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    .item-count {
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Modern Cart List */
+    .modern-cart-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Modern Cart Items */
+    .modern-cart-item {
+      background: var(--color-card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 12px var(--color-shadow);
+      padding: 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .modern-cart-item:hover {
+      box-shadow: 0 8px 20px var(--color-shadow-hover);
+      transform: translateY(-2px);
+      border-color: rgba(25, 118, 210, 0.2);
+    }
+
+    .cart-item-image-container {
+      flex-shrink: 0;
+      background: var(--color-product-img-bg);
+      border-radius: 12px;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modern-cart-item-img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+    }
+
+    .modern-cart-item-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .modern-cart-item-title {
+      color: #1976d2;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      line-height: 1.3;
+    }
+
+    .modern-cart-item-desc {
+      color: var(--color-text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.4;
+      margin: 0 0 1rem 0;
+    }
+
+    .cart-item-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .modern-cart-item-price {
+      color: #1976d2;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .modern-remove-btn {
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .modern-remove-btn:hover {
+      background: #d32f2f;
+      transform: translateY(-1px);
+    }
+
+    .modern-remove-btn svg {
+      stroke: currentColor;
+    }
+
+    /* Empty Cart State */
+    .empty-cart-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+      color: var(--color-text-secondary);
+      grid-column: 1 / -1;
+    }
+
+    .empty-cart-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.6;
+    }
+
+    .empty-cart-state h3 {
+      color: var(--color-fg);
+      font-size: 1.6rem;
+      margin: 0 0 0.5rem 0;
+      font-weight: 600;
+    }
+
+    .empty-cart-state p {
+      font-size: 1rem;
+      margin: 0 0 2rem 0;
+      line-height: 1.5;
+    }
+
+    .continue-shopping-btn {
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 1rem 2rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .continue-shopping-btn:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+    }
+
+    .continue-shopping-btn svg {
+      stroke: currentColor;
+    }
+
+    /* Checkout Section */
+    .checkout-section {
+      position: sticky;
+      top: 2rem;
+    }
+
+    .checkout-card {
+      background: var(--color-card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 16px var(--color-shadow);
+      padding: 2rem;
+      border: 2px solid rgba(25, 118, 210, 0.1);
+    }
+
+    .checkout-card h3 {
+      color: #1976d2;
+      margin: 0 0 1.5rem 0;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .order-summary {
+      margin-bottom: 2rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .summary-row:last-child {
+      border-bottom: none;
+    }
+
+    .summary-row.total-row {
+      border-top: 2px solid var(--color-border);
+      margin-top: 1rem;
+      padding-top: 1rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .summary-row .price {
+      color: #1976d2;
+      font-weight: 600;
+    }
+
+    .summary-row .total-price {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .modern-checkout-btn {
+      width: 100%;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .modern-checkout-btn:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+    }
+
+    .modern-checkout-btn svg {
+      stroke: currentColor;
+    }
+
+    .purchase-info {
+      color: var(--color-text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .purchase-info p {
+      margin: 0 0 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .purchase-info p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Checkout Message */
+    .checkout-message {
+      margin-top: 2rem;
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .checkout-message:empty {
+      display: none;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .cart-main {
+        padding: 1rem 0;
+      }
+
+      .cart-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+      }
+
+      .cart-header h1 {
+        font-size: 1.6rem;
+      }
+
+      .cart-summary {
+        gap: 1rem;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .cart-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .checkout-section {
+        position: static;
+        order: -1;
+      }
+
+      .modern-cart-item {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .cart-item-image-container {
+        align-self: center;
+      }
+
+      .cart-item-actions {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .modern-cart-item-price {
+        font-size: 1.2rem;
+      }
+
+      .modern-remove-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .cart-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .cart-summary {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .cart-summary-item {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .checkout-card {
+        padding: 1.5rem;
+      }
+
+      .modern-cart-item {
+        padding: 1rem;
+      }
+
+      .modern-cart-item-img {
+        width: 60px;
+        height: 60px;
+      }
+    }
+
+    /* Legacy styles for compatibility */
+    .cart-list {
+      margin-bottom: 2rem;
+    }
+
+    /* ========================================
+       ORDER MODAL STYLES
+    ======================================== */
+
+    .order-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .order-modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .order-modal {
+      background: var(--color-card-bg);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: hidden;
+      transform: translateY(-20px) scale(0.95);
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .order-modal-overlay.show .order-modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .order-modal.success-modal {
+      border-color: #4caf50;
+    }
+
+    .order-modal.error-modal {
+      border-color: #f44336;
+    }
+
+    .order-modal-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 2px solid var(--color-border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(25, 118, 210, 0.1), rgba(25, 118, 210, 0.05));
+    }
+
+    .success-modal .order-modal-header {
+      background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+    }
+
+    .error-modal .order-modal-header {
+      background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05));
+    }
+
+    .order-modal-header h3 {
+      margin: 0;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--color-fg);
+    }
+
+    .success-modal .order-modal-header h3 {
+      color: #4caf50;
+    }
+
+    .error-modal .order-modal-header h3 {
+      color: #f44336;
+    }
+
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.8rem;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: var(--color-bg);
+      color: var(--color-fg);
+    }
+
+    .order-modal-content {
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .order-success-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .success-icon {
+      font-size: 3rem;
+      animation: bounceIn 0.6s ease;
+    }
+
+    .order-details {
+      background: rgba(76, 175, 80, 0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 100%;
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+
+    .order-details p {
+      margin: 0.5rem 0;
+      font-size: 1rem;
+      color: var(--color-fg);
+    }
+
+    .order-details strong {
+      color: #4caf50;
+    }
+
+    .success-message {
+      color: var(--color-text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .order-error-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .error-icon {
+      font-size: 3rem;
+      animation: shake 0.6s ease;
+    }
+
+    .error-message {
+      font-size: 1.1rem;
+      color: #f44336;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .retry-message {
+      color: var(--color-text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .order-modal-footer {
+      padding: 1.5rem 2rem;
+      border-top: 2px solid var(--color-border-light);
+      display: flex;
+      justify-content: center;
+      background: var(--color-bg);
+    }
+
+    .modal-btn {
+      padding: 0.75rem 2rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-btn.primary {
+      background: #4caf50;
+      color: white;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+
+    .modal-btn.primary:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+    }
+
+    .modal-btn.secondary {
+      background: #1976d2;
+      color: white;
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+
+    .modal-btn.secondary:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+    }
+
+    /* ========================================
+       LOADING AND DISABLED BUTTON STYLES
+    ======================================== */
+
+    .modern-checkout-btn:disabled {
+      opacity: 0.7 !important;
+      cursor: not-allowed !important;
+      transform: none !important;
+      box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2) !important;
+    }
+
+    .modern-checkout-btn:disabled:hover {
+      transform: none !important;
+      box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2) !important;
+    }
+
+    .spinning {
+      animation: spin 1s linear infinite;
+    }
+
+    /* ========================================
+       ANIMATIONS
+    ======================================== */
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    /* ========================================
+       MOBILE MODAL RESPONSIVE
+    ======================================== */
+
+    @media (max-width: 480px) {
+      .order-modal {
+        width: 95%;
+        margin: 1rem;
+      }
+
+      .order-modal-header,
+      .order-modal-content,
+      .order-modal-footer {
+        padding: 1.5rem;
+      }
+
+      .order-modal-header h3 {
+        font-size: 1.2rem;
+      }
+
+      .success-icon,
+      .error-icon {
+        font-size: 2.5rem;
+      }
+
+      .order-details {
+        padding: 1rem;
+      }
+    }
+  </style>
+  <script src="scripts/utils.js"></script>
+</body>
+</html> 
