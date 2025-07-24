@@ -615,6 +615,10 @@
         <div class="stat-card-value" id="total-products-count">-</div>
         <div class="stat-card-label">Total Products</div>
       </div>
+      <div class="stat-card" style="border-color: #2196f3;">
+        <div class="stat-card-value" id="total-inventory-count" style="color: #2196f3;">-</div>
+        <div class="stat-card-label">Total Inventory</div>
+      </div>
       <div class="stat-card in-stock">
         <div class="stat-card-value" id="in-stock-count">-</div>
         <div class="stat-card-label">In Stock</div>
@@ -663,6 +667,7 @@
               <th>Product</th>
               <th>Description</th>
               <th>Price</th>
+              <th>Quantity</th>
               <th>Stock Status</th>
               <th>Visibility</th>
               <th>Actions</th>
@@ -670,7 +675,7 @@
           </thead>
           <tbody id="products-table-body">
             <tr>
-              <td colspan="7" class="empty-state">
+              <td colspan="8" class="empty-state">
                 <div class="empty-state-icon">⏳</div>
                 <div>Loading products...</div>
               </td>
@@ -816,11 +821,13 @@
 
     function updateProductStats(products) {
       const totalProducts = products.length;
+      const totalInventory = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
       const inStock = products.filter(p => !p.sold_out).length;
       const outOfStock = products.filter(p => p.sold_out).length;
       const unlisted = products.filter(p => p.unlisted).length;
 
       document.getElementById('total-products-count').textContent = totalProducts;
+      document.getElementById('total-inventory-count').textContent = totalInventory;
       document.getElementById('in-stock-count').textContent = inStock;
       document.getElementById('out-of-stock-count').textContent = outOfStock;
       document.getElementById('unlisted-count').textContent = unlisted;
@@ -859,7 +866,7 @@
       if (!products || products.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="empty-state">
+            <td colspan="8" class="empty-state">
               <div class="empty-state-icon">📦</div>
               <div>No products found</div>
             </td>
@@ -885,6 +892,7 @@
             <td><strong>${product.item}</strong></td>
             <td>${product.description}</td>
             <td><span class="price-display">₦${product.price}</span></td>
+            <td><strong style="color: #1976d2;">${product.quantity || 0}</strong></td>
             <td><span class="status-badge ${stockStatus}">${stockText}</span></td>
             <td><span class="status-badge ${visibilityStatus}">${visibilityText}</span></td>
             <td class="actions">
@@ -920,6 +928,10 @@
             <label class="form-label" for="edit-price">Price (₦)</label>
             <input id='edit-price' class="form-input" type='number' value='${product.price}' step="0.01" />
           </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-quantity">Quantity</label>
+            <input id='edit-quantity' class="form-input" type='number' value='${product.quantity || 0}' min="0" />
+          </div>
           <div class="form-group" style="grid-column: 1 / -1;">
             <label class="form-label" for="edit-description">Description</label>
             <input id='edit-description' class="form-input" value='${product.description}' />
@@ -953,6 +965,7 @@
       const item = document.getElementById('edit-item').value;
       const description = document.getElementById('edit-description').value;
       const price = parseFloat(document.getElementById('edit-price').value) || 0;
+      const quantity = parseInt(document.getElementById('edit-quantity').value) || 0;
       const imageInput = document.getElementById('edit-image');
       const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
       const soldOut = document.getElementById('edit-sold-out').checked ? 1 : 0;
@@ -962,6 +975,7 @@
       formData.append('item', item);
       formData.append('description', description);
       formData.append('price', price);
+      formData.append('quantity', quantity);
       formData.append('sold_out', soldOut);
       formData.append('unlisted', unlisted);
       if (imageFile) formData.append('image', imageFile);
@@ -1012,6 +1026,10 @@
             <label class="form-label" for="add-price">Price (₦)</label>
             <input id='add-price' class="form-input" type='number' value='0' step="0.01" />
           </div>
+          <div class="form-group">
+            <label class="form-label" for="add-quantity">Quantity</label>
+            <input id='add-quantity' class="form-input" type='number' value='0' min="0" />
+          </div>
           <div class="form-group" style="grid-column: 1 / -1;">
             <label class="form-label" for="add-description">Description</label>
             <input id='add-description' class="form-input" placeholder="Enter product description" />
@@ -1045,6 +1063,7 @@
       const item = document.getElementById('add-item').value.trim();
       const description = document.getElementById('add-description').value;
       const price = parseFloat(document.getElementById('add-price').value) || 0;
+      const quantity = parseInt(document.getElementById('add-quantity').value) || 0;
       const imageInput = document.getElementById('add-image');
       const imageFile = imageInput && imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
       const soldOut = document.getElementById('add-sold-out').checked ? 1 : 0;
@@ -1059,6 +1078,7 @@
       formData.append('item', item);
       formData.append('description', description);
       formData.append('price', price);
+      formData.append('quantity', quantity);
       formData.append('sold_out', soldOut);
       formData.append('unlisted', unlisted);
       if (imageFile) formData.append('image', imageFile);

@@ -87,6 +87,33 @@
     .admin-only.show {
       display: flex;
     }
+
+    /* Fix SVG display issues for logout button */
+    .nav-btn svg {
+      stroke: currentColor;
+      fill: none;
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .logout-btn svg {
+      stroke: currentColor;
+      fill: none;
+      width: 20px;
+      height: 20px;
+      display: block;
+      overflow: visible;
+    }
+
+    .logout-btn svg path,
+    .logout-btn svg polyline,
+    .logout-btn svg line {
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+    }
   </style>
 </head>
 <body>
@@ -143,7 +170,7 @@
           <!-- Logout -->
           <button id="logout-btn" class="nav-btn logout-btn" title="Logout">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4"></path>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16,17 21,12 16,7"></polyline>
               <line x1="21" y1="12" x2="9" y2="12"></line>
             </svg>
@@ -472,16 +499,37 @@
               checkoutBtn.style.opacity = '1';
               checkoutBtn.style.cursor = 'pointer';
               
-              // Show error modal
-              showOrderModal(
-                false,
-                'Order Failed',
-                `<div class="order-error-content">
-                  <div class="error-icon">❌</div>
-                  <p class="error-message">Failed to place order: ${data.error || 'Unknown error occurred'}</p>
-                  <p class="retry-message">Please try again or contact support if the problem persists.</p>
-                </div>`
-              );
+              // Handle insufficient inventory errors with details
+              if (data.error === 'Insufficient inventory' && data.details) {
+                let inventoryDetails = '<div class="inventory-error-details">';
+                inventoryDetails += '<p><strong>Insufficient inventory for the following items:</strong></p><ul>';
+                
+                data.details.forEach(item => {
+                  inventoryDetails += `<li><strong>${item.item}:</strong> You requested ${item.requested}, but only ${item.available} available</li>`;
+                });
+                
+                inventoryDetails += '</ul><p class="retry-message">Please update your cart and try again.</p></div>';
+                
+                showOrderModal(
+                  false,
+                  'Insufficient Inventory',
+                  `<div class="order-error-content">
+                    <div class="error-icon">📦</div>
+                    ${inventoryDetails}
+                  </div>`
+                );
+              } else {
+                // Show generic error modal
+                showOrderModal(
+                  false,
+                  'Order Failed',
+                  `<div class="order-error-content">
+                    <div class="error-icon">❌</div>
+                    <p class="error-message">Failed to place order: ${data.error || 'Unknown error occurred'}</p>
+                    <p class="retry-message">Please try again or contact support if the problem persists.</p>
+                  </div>`
+                );
+              }
             }
           })
           .catch(error => {
@@ -681,6 +729,60 @@
       box-shadow: 0 8px 20px var(--color-shadow-hover);
       transform: translateY(-2px);
       border-color: rgba(25, 118, 210, 0.2);
+    }
+
+    /* Override product overlay and quick view for cart items */
+    .modern-cart-item .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .modern-cart-item .quick-view-btn {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .modern-cart-item:hover .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .modern-cart-item:hover .quick-view-btn {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    /* Prevent any overlay effects on cart item images */
+    .cart-item-image-container {
+      position: relative;
+      overflow: visible !important;
+    }
+
+    .cart-item-image-container .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .cart-item-image-container:hover .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    /* Ensure cart item images don't get darkened */
+    .modern-cart-item-img {
+      filter: none !important;
+      opacity: 1 !important;
+    }
+
+    .modern-cart-item:hover .modern-cart-item-img {
+      filter: none !important;
+      opacity: 1 !important;
     }
 
     .cart-item-image-container {
@@ -1266,6 +1368,32 @@
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    /* ========================================
+       INVENTORY ERROR STYLES
+    ======================================== */
+
+    .inventory-error-details {
+      text-align: left;
+    }
+    
+    .inventory-error-details ul {
+      margin: 1rem 0;
+      padding-left: 1.5rem;
+    }
+    
+    .inventory-error-details li {
+      margin: 0.5rem 0;
+      color: var(--color-fg);
+    }
+    
+    .inventory-error-details .retry-message {
+      margin-top: 1rem;
+      text-align: center;
+      font-style: italic;
+      color: var(--color-fg);
+      opacity: 0.8;
     }
 
     @keyframes bounceIn {

@@ -191,7 +191,8 @@ DEPLOYMENT_TIMEOUT={config['deployment']['timeout']}
                 price REAL,
                 image TEXT,
                 sold_out INTEGER DEFAULT 0,
-                unlisted INTEGER DEFAULT 0
+                unlisted INTEGER DEFAULT 0,
+                quantity INTEGER DEFAULT 0
             )''')
             
             # Create purchases table

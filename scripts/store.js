@@ -40,8 +40,18 @@ function formatMST(dateString) {
 function showStore(username) {
   // Fetch both items and user balance from API
   Promise.all([
-    fetch('/api/items').then(res => res.json()),
-    fetch('/api/users').then(res => res.json())
+    fetch('/api/items').then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    }),
+    fetch('/api/users').then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
   ]).then(([itemsData, usersData]) => {
     const items = itemsData.items || [];
     const users = usersData.users || [];
@@ -108,7 +118,7 @@ function showStore(username) {
               <!-- Logout -->
               <button id="logout-btn" class="nav-btn logout-btn" title="Logout">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4"></path>
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                   <polyline points="16,17 21,12 16,7"></polyline>
                   <line x1="21" y1="12" x2="9" y2="12"></line>
                 </svg>
@@ -200,8 +210,20 @@ function showStore(username) {
        updateCartCount();
      }, 100);
   }).catch(err => {
-    document.getElementById('app').innerHTML = '<p style="color:red;">Failed to load store data.</p>';
     console.error('Error loading store data:', err);
+    document.getElementById('app').innerHTML = `
+      <div style="padding: 2rem; text-align: center;">
+        <h2 style="color: red;">Failed to load store data</h2>
+        <p style="color: #666;">There was an error connecting to the server.</p>
+        <details style="margin-top: 1rem; text-align: left; background: #f5f5f5; padding: 1rem; border-radius: 4px;">
+          <summary style="cursor: pointer; font-weight: bold;">Error Details</summary>
+          <pre style="margin-top: 0.5rem; white-space: pre-wrap;">${err.message}</pre>
+        </details>
+        <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Retry
+        </button>
+      </div>
+    `;
   });
 }
 
@@ -478,9 +500,18 @@ function renderProductCards() {
   
   container.innerHTML = filteredItems.map((item, idx) => {
     const inCart = getCart().some(cartItem => cartItem.item === item.item);
-    const stockBadge = item.sold_out ? 
-      '<span class="stock-badge sold-out">Sold Out</span>' : 
-      '<span class="stock-badge in-stock">In Stock</span>';
+    const quantity = item.quantity || 0;
+    let stockBadge;
+    
+    if (item.sold_out) {
+      stockBadge = '<span class="stock-badge sold-out">Sold Out</span>';
+    } else if (quantity === 0) {
+      stockBadge = '<span class="stock-badge sold-out">Out of Stock</span>';
+    } else if (quantity <= 5) {
+      stockBadge = `<span class="stock-badge low-stock">Only ${quantity} left</span>`;
+    } else {
+      stockBadge = `<span class="stock-badge in-stock">${quantity} available</span>`;
+    }
     
     return `
       <div class="modern-product-card ${item.sold_out ? 'sold-out' : ''}" data-item="${item.item}">
@@ -513,12 +544,12 @@ function renderProductCards() {
           
           <div class="product-actions">
             <button 
-              class="modern-add-cart-btn ${item.sold_out ? 'sold-out-btn' : ''} ${inCart ? 'in-cart' : ''}" 
+              class="modern-add-cart-btn ${item.sold_out || quantity === 0 ? 'sold-out-btn' : ''} ${inCart ? 'in-cart' : ''}" 
               data-idx="${idx}" 
-              ${item.sold_out ? 'disabled' : ''}
+              ${item.sold_out || quantity === 0 ? 'disabled' : ''}
             >
-              ${item.sold_out ? 
-                '<span>❌ Sold Out</span>' : 
+              ${item.sold_out || quantity === 0 ? 
+                '<span>❌ Out of Stock</span>' : 
                 inCart ? 
                   '<span>✅ In Cart</span>' : 
                   '<span>🛒 Add to Cart</span>'
@@ -546,6 +577,12 @@ function setupProductCardListeners() {
       e.stopPropagation();
       const idx = parseInt(this.getAttribute('data-idx'));
       const item = filteredItems[idx];
+      
+      // Check if item has inventory available
+      const quantity = item.quantity || 0;
+      if (item.sold_out || quantity === 0) {
+        return; // Don't add out of stock items
+      }
       
       const cart = getCart();
       if (!cart.find(i => i.item === item.item)) {

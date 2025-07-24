@@ -509,6 +509,11 @@ body {
   color: white;
 }
 
+.stock-badge.low-stock {
+  background: #ff9800;
+  color: white;
+}
+
 .stock-badge.sold-out {
   background: #f44336;
   color: white;

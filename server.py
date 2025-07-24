@@ -186,21 +186,41 @@ def place_order():
         logging.warning(f"Insufficient balance for user {username}: {user_balance} < {total}")
         return jsonify({'error': 'Insufficient balance'}), 400
     
+    # Format items for database storage (with proper quantities)
+    # Note: The cart system stores entire product objects, including the inventory 'quantity' field.
+    # We must NOT use item.get('quantity') as that represents total inventory, not quantity being ordered.
+    # Current cart system only supports ordering 1 of each item.
+    formatted_items = []
+    for item in items:
+        formatted_items.append({
+            'name': item.get('item', item.get('name', 'Unknown Item')),
+            'price': item.get('price', 0),
+            'quantity': 1  # Always 1: cart doesn't support multiple quantities per item
+        })
+    
+    # Check inventory availability before processing order
+    inventory_check = db_utils.check_inventory_availability(formatted_items)
+    if not inventory_check['available']:
+        insufficient_details = []
+        for insufficient_item in inventory_check['insufficient_items']:
+            insufficient_details.append(
+                f"{insufficient_item['item']}: requested {insufficient_item['requested']}, "
+                f"available {insufficient_item['available']}"
+            )
+        
+        logging.warning(f"Insufficient inventory for order by {username}: {insufficient_details}")
+        return jsonify({
+            'error': 'Insufficient inventory',
+            'details': inventory_check['insufficient_items'],
+            'message': inventory_check['message']
+        }), 400
+    
     try:
         # Generate unique order ID
         order_id = f"NESOP-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
         
         # Get fulfillment team email from configuration
         fulfillment_email = config.get_email_config().fulfillment_email
-        
-        # Format items for database storage
-        formatted_items = []
-        for item in items:
-            formatted_items.append({
-                'name': item.get('item', item.get('name', 'Unknown Item')),
-                'price': item.get('price', 0),
-                'quantity': 1  # Default quantity
-            })
         
         # Add order to database (using fulfillment email for tracking)
         order_success = db_utils.add_order(order_id, username, fulfillment_email, total, formatted_items)
@@ -221,6 +241,20 @@ def place_order():
             return jsonify({'error': 'Failed to process payment'}), 500
 
         new_balance = transaction_result['new_balance']
+        
+        # Decrement inventory for purchased items
+        inventory_decrement = db_utils.decrement_inventory(formatted_items)
+        if not inventory_decrement['success']:
+            logging.error(f"Failed to decrement inventory for order {order_id}: {inventory_decrement['message']}")
+            # Note: We don't return an error here since payment was already processed
+            # This could be handled by an admin/inventory reconciliation process
+        else:
+            inventory_details = []
+            for item_update in inventory_decrement['updated_items']:
+                inventory_details.append(
+                    f"{item_update['item']}: {item_update['previous_quantity']} -> {item_update['new_quantity']}"
+                )
+            logging.info(f"Inventory decremented for order {order_id}: {inventory_details}")
         
         # Prepare order details for fulfillment team email
         order_details = {
@@ -922,7 +956,8 @@ def get_items():
             'price': i[2],
             'image': i[3],
             'sold_out': bool(i[4]) if len(i) > 4 else False,
-            'unlisted': bool(i[5]) if len(i) > 5 else False
+            'unlisted': bool(i[5]) if len(i) > 5 else False,
+            'quantity': i[6] if len(i) > 6 else 0
         } for i in items
     ]})
 
@@ -935,6 +970,7 @@ def add_item():
         image_file = request.files.get('image')
         sold_out = int(request.form.get('sold_out', 0))
         unlisted = int(request.form.get('unlisted', 0))
+        quantity = int(request.form.get('quantity', 0))
     else:
         data = request.get_json()
         item = data.get('item')
@@ -943,6 +979,7 @@ def add_item():
         image_file = None
         sold_out = int(data.get('sold_out', 0))
         unlisted = int(data.get('unlisted', 0))
+        quantity = int(data.get('quantity', 0))
     if not item or description is None or price is None:
         return jsonify({'error': 'Item, description, and price required.'}), 400
     if db_utils.get_item(item):
@@ -956,8 +993,8 @@ def add_item():
         # Set correct ownership and permissions for uploaded file
         set_file_ownership_and_permissions(image_path)
         image_filename = f"assets/images/{safe_name}"
-    db_utils.add_item(item, description, float(price), image_filename, sold_out, unlisted)
-    logging.info(f"Admin added item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted})")
+    db_utils.add_item(item, description, float(price), image_filename, sold_out, unlisted, quantity)
+    logging.info(f"Admin added item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted}, quantity: {quantity})")
     return jsonify({'success': True})
 
 @app.route('/api/items', methods=['PUT'])
@@ -969,6 +1006,7 @@ def update_item():
         image_file = request.files.get('image')
         sold_out = request.form.get('sold_out')
         unlisted = request.form.get('unlisted')
+        quantity = request.form.get('quantity')
     else:
         data = request.get_json()
         item = data.get('item')
@@ -977,6 +1015,7 @@ def update_item():
         image_file = None
         sold_out = data.get('sold_out')
         unlisted = data.get('unlisted')
+        quantity = data.get('quantity')
     if not item:
         return jsonify({'error': 'Item required.'}), 400
     if not db_utils.get_item(item):
@@ -996,9 +1035,10 @@ def update_item():
         float(price) if price is not None else None,
         image_filename,
         int(sold_out) if sold_out is not None else None,
-        int(unlisted) if unlisted is not None else None
+        int(unlisted) if unlisted is not None else None,
+        int(quantity) if quantity is not None else None
     )
-    logging.info(f"Admin updated item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted})")
+    logging.info(f"Admin updated item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted}, quantity: {quantity})")
     return jsonify({'success': True})
 
 @app.route('/api/items', methods=['DELETE'])
@@ -1025,7 +1065,8 @@ def get_product(item):
         'price': product[2],
         'image': product[3],
         'sold_out': bool(product[4]) if len(product) > 4 else False,
-        'unlisted': bool(product[5]) if len(product) > 5 else False
+        'unlisted': bool(product[5]) if len(product) > 5 else False,
+        'quantity': product[6] if len(product) > 6 else 0
     })
 
 @app.route('/api/product/<item>/reviews', methods=['GET'])

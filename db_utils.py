@@ -275,27 +275,56 @@ def get_ad_audit_logs(limit=100):
 def get_items():
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('SELECT item, description, price, image, sold_out, unlisted FROM items')
-    items = c.fetchall()
+    
+    # Try to select with quantity column first, fall back to without it for backward compatibility
+    try:
+        c.execute('SELECT item, description, price, image, sold_out, unlisted, quantity FROM items')
+        items = c.fetchall()
+    except sqlite3.OperationalError as e:
+        if 'no such column: quantity' in str(e):
+            # Fallback for databases that haven't been migrated yet
+            logger.warning("Quantity column not found, falling back to old schema. Please run migrate_quantity_tracking.py")
+            c.execute('SELECT item, description, price, image, sold_out, unlisted FROM items')
+            items = c.fetchall()
+            # Add quantity=0 to each item for compatibility
+            items = [item + (0,) for item in items]
+        else:
+            raise
+    
     conn.close()
     return items
 
 def get_item(item_name):
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('SELECT item, description, price, image, sold_out, unlisted FROM items WHERE item = ?', (item_name,))
-    item = c.fetchone()
+    
+    # Try to select with quantity column first, fall back to without it for backward compatibility
+    try:
+        c.execute('SELECT item, description, price, image, sold_out, unlisted, quantity FROM items WHERE item = ?', (item_name,))
+        item = c.fetchone()
+    except sqlite3.OperationalError as e:
+        if 'no such column: quantity' in str(e):
+            # Fallback for databases that haven't been migrated yet
+            logger.warning("Quantity column not found in get_item, falling back to old schema. Please run migrate_quantity_tracking.py")
+            c.execute('SELECT item, description, price, image, sold_out, unlisted FROM items WHERE item = ?', (item_name,))
+            item = c.fetchone()
+            # Add quantity=0 for compatibility
+            if item:
+                item = item + (0,)
+        else:
+            raise
+    
     conn.close()
     return item
 
-def add_item(item, description, price, image=None, sold_out=0, unlisted=0):
+def add_item(item, description, price, image=None, sold_out=0, unlisted=0, quantity=0):
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute('INSERT INTO items (item, description, price, image, sold_out, unlisted) VALUES (?, ?, ?, ?, ?, ?)', (item, description, price, image, sold_out, unlisted))
+    c.execute('INSERT INTO items (item, description, price, image, sold_out, unlisted, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)', (item, description, price, image, sold_out, unlisted, quantity))
     conn.commit()
     conn.close()
 
-def update_item(item, description=None, price=None, image=None, sold_out=None, unlisted=None):
+def update_item(item, description=None, price=None, image=None, sold_out=None, unlisted=None, quantity=None):
     conn = get_db_connection()
     c = conn.cursor()
     fields = []
@@ -315,6 +344,9 @@ def update_item(item, description=None, price=None, image=None, sold_out=None, u
     if unlisted is not None:
         fields.append('unlisted = ?')
         values.append(unlisted)
+    if quantity is not None:
+        fields.append('quantity = ?')
+        values.append(quantity)
     if fields:
         values.append(item)
         c.execute(f'UPDATE items SET {", ".join(fields)} WHERE item = ?', values)
@@ -327,6 +359,134 @@ def delete_item(item):
     c.execute('DELETE FROM items WHERE item = ?', (item,))
     conn.commit()
     conn.close()
+
+def check_inventory_availability(items_to_check):
+    """
+    Check if requested items have sufficient inventory
+    
+    Args:
+        items_to_check: List of dicts with 'name' and 'quantity' keys
+        
+    Returns:
+        dict: {'available': bool, 'message': str, 'insufficient_items': list}
+    """
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    insufficient_items = []
+    
+    try:
+        for item_data in items_to_check:
+            item_name = item_data.get('name', item_data.get('item', ''))
+            requested_quantity = item_data.get('quantity', 1)
+            
+            # Get current inventory for this item
+            c.execute('SELECT quantity FROM items WHERE item = ?', (item_name,))
+            result = c.fetchone()
+            
+            if not result:
+                insufficient_items.append({
+                    'item': item_name,
+                    'requested': requested_quantity,
+                    'available': 0,
+                    'reason': 'Item not found'
+                })
+                continue
+            
+            current_inventory = result[0] or 0
+            
+            if current_inventory < requested_quantity:
+                insufficient_items.append({
+                    'item': item_name,
+                    'requested': requested_quantity,
+                    'available': current_inventory,
+                    'reason': 'Insufficient inventory'
+                })
+        
+        if insufficient_items:
+            return {
+                'available': False,
+                'message': f"Insufficient inventory for {len(insufficient_items)} item(s)",
+                'insufficient_items': insufficient_items
+            }
+        
+        return {
+            'available': True,
+            'message': 'All items available',
+            'insufficient_items': []
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking inventory availability: {str(e)}")
+        return {
+            'available': False,
+            'message': 'Error checking inventory',
+            'insufficient_items': []
+        }
+    finally:
+        conn.close()
+
+def decrement_inventory(items_to_decrement):
+    """
+    Decrement inventory quantities for purchased items
+    
+    Args:
+        items_to_decrement: List of dicts with 'name' and 'quantity' keys
+        
+    Returns:
+        dict: {'success': bool, 'message': str, 'updated_items': list}
+    """
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    updated_items = []
+    
+    try:
+        for item_data in items_to_decrement:
+            item_name = item_data.get('name', item_data.get('item', ''))
+            quantity_to_subtract = item_data.get('quantity', 1)
+            
+            # Get current inventory
+            c.execute('SELECT quantity FROM items WHERE item = ?', (item_name,))
+            result = c.fetchone()
+            
+            if not result:
+                logger.warning(f"Attempted to decrement inventory for non-existent item: {item_name}")
+                continue
+            
+            current_inventory = result[0] or 0
+            new_inventory = max(0, current_inventory - quantity_to_subtract)  # Prevent negative inventory
+            
+            # Update inventory
+            c.execute('UPDATE items SET quantity = ? WHERE item = ?', (new_inventory, item_name))
+            
+            updated_items.append({
+                'item': item_name,
+                'previous_quantity': current_inventory,
+                'decremented_by': quantity_to_subtract,
+                'new_quantity': new_inventory
+            })
+            
+            logger.info(f"Inventory decremented for {item_name}: {current_inventory} -> {new_inventory}")
+        
+        conn.commit()
+        
+        return {
+            'success': True,
+            'message': f"Successfully decremented inventory for {len(updated_items)} item(s)",
+            'updated_items': updated_items
+        }
+        
+    except Exception as e:
+        logger.error(f"Error decrementing inventory: {str(e)}")
+        conn.rollback()
+        return {
+            'success': False,
+            'message': 'Error updating inventory',
+            'updated_items': []
+        }
+    finally:
+        conn.close()
 
 def get_reviews_for_item(item):
     conn = get_db_connection()
@@ -513,6 +673,7 @@ def add_order(order_id: str, username: str, user_email: str, total_amount: float
         ''', (order_id, username, user_email, total_amount))
         
         # Insert order items
+        # Note: items should be pre-formatted with correct quantities from server.py
         for item in items:
             c.execute('''
                 INSERT INTO order_items (order_id, item_name, item_price, quantity)

@@ -87,6 +87,87 @@
     .admin-only.show {
       display: flex;
     }
+
+    /* Fix SVG display issues for logout button */
+    .nav-btn svg {
+      stroke: currentColor;
+      fill: none;
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    .logout-btn svg {
+      stroke: currentColor;
+      fill: none;
+      width: 20px;
+      height: 20px;
+      display: block;
+      overflow: visible;
+    }
+
+    .logout-btn svg path,
+    .logout-btn svg polyline,
+    .logout-btn svg line {
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+    }
+
+    /* Override product overlay and quick view for store items */
+    .modern-product-card .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .modern-product-card .quick-view-btn {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .modern-product-card:hover .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .modern-product-card:hover .quick-view-btn {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    /* Prevent any overlay effects on product images */
+    .product-image-container {
+      position: relative;
+      overflow: visible !important;
+    }
+
+    .product-image-container .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    .product-image-container:hover .product-overlay {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    /* Ensure product images don't get darkened */
+    .modern-product-img {
+      filter: none !important;
+      opacity: 1 !important;
+    }
+
+    .modern-product-card:hover .modern-product-img {
+      filter: none !important;
+      opacity: 1 !important;
+    }
   </style>
 </head>
 <body>

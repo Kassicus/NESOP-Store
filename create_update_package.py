@@ -63,6 +63,7 @@ def create_update_package(version=None, include_files=None, include_migrations=T
         'config.py',
         'index.html',
         'admin.html',
+        'admin-inventory.html',
         'cart.html',
         'register.html',
         'account.html'
@@ -72,7 +73,7 @@ def create_update_package(version=None, include_files=None, include_migrations=T
     migration_files = [
         'migrate_ad_integration.py',
         'migrate_items_to_sqlite.py',
-        'migrate_username_normalization.py'
+        'migrate_quantity_tracking.py'
     ]
     
     # Utility files
