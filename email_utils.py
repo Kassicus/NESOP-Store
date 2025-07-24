@@ -104,7 +104,7 @@ class EmailManager:
         
         body = f"""Dear {username},
 
-Your NESOP Store account balance has been updated.
+Your ESOP Store account balance has been updated.
 
 TRANSACTION DETAILS:
 ===================
@@ -118,13 +118,13 @@ Transaction date: {formatted_date}
             body += f"\nTransaction note: {note}\n"
         
         body += f"""
-If you have any questions about this transaction, please contact the NESOP Store administration.
+If you have any questions about this transaction, please reach out to the ESOP Committee.
 
 Best regards,
-NESOP Store Team
+ESOP Committee
 
 ---
-This is an automated notification from NESOP Store.
+This is an automated notification from ESOP Store.
 """
         
         return body
@@ -189,7 +189,7 @@ This is an automated notification from NESOP Store.
         
         body = f"""Dear {username},
 
-Thank you for your order from NESOP Store!
+Thank you for your order from the ESOP Store!
 
 ORDER DETAILS:
 =============
@@ -205,18 +205,17 @@ ACCOUNT INFORMATION:
 ===================
 Your new account balance: ₦ {new_balance}
 
-Your order has been successfully processed and the fulfillment team has been notified. 
-They will contact you shortly to arrange pickup or delivery of your items.
+Someone from the ESOP Committee will contact you shortly to arrange pickup or delivery of your items.
 
-If you have any questions about your order, please contact the NESOP Store administration.
+If you have any questions about your order, please reach out to the ESOP Committee.
 
 Thank you for shopping with us!
 
 Best regards,
-NESOP Store Team
+ESOP Committee
 
 ---
-This is an automated confirmation from NESOP Store.
+This is an automated confirmation from the ESOP Store.
 """
         
         return body
@@ -242,7 +241,7 @@ This is an automated confirmation from NESOP Store.
         
         try:
             # Create email content
-            subject = f"New NESOP Store Order - {order_details.get('order_id', 'N/A')}"
+            subject = f"New ESOP Store Order - {order_details.get('order_id', 'N/A')}"
             body = self._create_fulfillment_email_body(order_details)
             
             # Send email
@@ -283,10 +282,10 @@ This is an automated confirmation from NESOP Store.
         # Generate customer email for reference
         customer_email = self._generate_user_email(customer_username)
         
-        body = f"""NEW ORDER - NESOP STORE
+        body = f"""NEW ORDER - ESOP STORE
 ========================
 
-A new order has been placed and requires fulfillment.
+A new order has been placed.
 
 ORDER DETAILS:
 =============
@@ -297,26 +296,17 @@ Order Total: ₦ {total}
 CUSTOMER INFORMATION:
 ====================
 Username: {customer_username}
-Display Name: {customer_display_name}
 Email: {customer_email if customer_email else 'Not available'}
+
 Balance After Order: ₦ {customer_balance}
 
 ITEMS TO FULFILL:
 ================
 {items_text}
 
-FULFILLMENT INSTRUCTIONS:
-========================
-1. Prepare the items listed above
-2. Contact the customer to arrange pickup/delivery
-3. Mark the order as fulfilled in the system
-
 The customer has been automatically notified of their order confirmation.
 
-If you have any questions about this order, please contact the NESOP Store administrator.
-
 ---
-This is an automated notification from NESOP Store.
 Order processed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
         

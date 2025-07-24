@@ -612,7 +612,7 @@
 
     function updateCartCount() {
       const cart = JSON.parse(localStorage.getItem('nesop_cart') || '[]');
-      const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+      const cartCount = cart.length; // Use cart.length instead of summing item.quantity
       const cartBadge = document.getElementById('cart-count-badge');
       
       if (cartBadge) {
