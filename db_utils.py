@@ -869,19 +869,24 @@ def add_currency_with_transaction_log(username, amount, transaction_type, note, 
         
         logger.info(f"Added {amount} to {username} balance. New balance: {new_balance}. Transaction ID: {transaction_id}")
         
-        # Send balance change notification email to user
-        try:
-            import email_utils
-            email_sent = email_utils.send_balance_change_notification(
-                username=username,
-                amount=amount,
-                new_balance=new_balance,
-                transaction_type=transaction_type,
-                note=note
-            )
-            logger.info(f"Balance change notification email sent to {username}: {email_sent}")
-        except Exception as e:
-            logger.warning(f"Failed to send balance change notification email to {username}: {str(e)}")
+        # Send balance change notification email to user only for admin-initiated transactions
+        # Skip email notifications for purchases since users get order confirmation emails instead
+        admin_transaction_types = ['admin_add', 'admin_update', 'bulk_add', 'refund']
+        if transaction_type in admin_transaction_types:
+            try:
+                import email_utils
+                email_sent = email_utils.send_balance_change_notification(
+                    username=username,
+                    amount=amount,
+                    new_balance=new_balance,
+                    transaction_type=transaction_type,
+                    note=note
+                )
+                logger.info(f"Balance change notification email sent to {username}: {email_sent}")
+            except Exception as e:
+                logger.warning(f"Failed to send balance change notification email to {username}: {str(e)}")
+        else:
+            logger.info(f"Skipping balance change email for transaction type '{transaction_type}' - user will receive appropriate notification via other means")
         
         return {
             'success': True,

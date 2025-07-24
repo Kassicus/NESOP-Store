@@ -64,6 +64,9 @@ def create_update_package(version=None, include_files=None, include_migrations=T
         'index.html',
         'admin.html',
         'admin-inventory.html',
+        'admin-users.html',
+        'admin-transactions.html',
+        'admin-dashboard.html',
         'cart.html',
         'register.html',
         'account.html'
