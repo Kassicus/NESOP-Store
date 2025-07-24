@@ -243,10 +243,27 @@ function createProductModal() {
     </div>
   `;
   document.body.appendChild(productModal);
+  
+  // Close button click handler
   productModal.querySelector('#modal-close-btn').onclick = closeProductModal;
+  
+  // Click outside modal to close
+  productModal.addEventListener('click', function(e) {
+    if (e.target === productModal) {
+      closeProductModal();
+    }
+  });
+  
+  // Prevent modal content clicks from bubbling up to the overlay
+  productModal.querySelector('.modal').addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+  
+  // Escape key to close
   document.addEventListener('keydown', function(e) {
     if (productModal.style.display === 'flex' && e.key === 'Escape') closeProductModal();
   });
+  
   return productModal;
 }
 
@@ -265,18 +282,24 @@ function openProductModal(itemName) {
     }
     const reviews = reviewsData.reviews || [];
     document.getElementById('modal-product-content').innerHTML = `
-      <div class="modal-title">${product.item}</div>
-      <div class="modal-product-main">
-        <img src="${product.image || 'assets/images/placeholder.png'}" alt="${product.item}" class="modal-product-img" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
-        <div class="modal-product-info">
-                  <h2 class="product-name" style="margin-top:0;">${product.item}</h2>
-        <p class="product-desc">${product.description}</p>
-        <div class="modal-product-price">₦ ${product.price}</div>
-        <button id="modal-add-cart-btn" class="action-btn add${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''} style="margin-top:1em;">${product.sold_out ? 'Sold Out' : 'Add to Cart'}</button>
-        </div>
+      <div class="modal-header">
+        <div class="modal-title">${product.item}</div>
+        <button class="modal-close" onclick="closeProductModal()">&times;</button>
       </div>
-      <form id="modal-review-form">
-      <h3 style="color:#1976d2;">Leave a review!</h3>
+      <div class="modal-content">
+        <div class="modal-product-main">
+          <div class="modal-product-image-container">
+            <img src="${product.image || 'assets/images/placeholder.png'}" alt="${product.item}" class="modal-product-img" onerror="this.onerror=null;this.src='assets/images/placeholder.png';" />
+          </div>
+          <div class="modal-product-info">
+            <h2 class="product-name">${product.item}</h2>
+            <p class="product-desc">${product.description}</p>
+            <div class="modal-product-price">₦${parseFloat(product.price).toLocaleString()}</div>
+            <button id="modal-add-cart-btn" class="modern-add-cart-btn${product.sold_out ? ' sold-out-btn' : ''}" ${product.sold_out ? 'disabled' : ''}>${product.sold_out ? '❌ Sold Out' : '🛒 Add to Cart'}</button>
+          </div>
+        </div>
+        <form id="modal-review-form">
+          <h3>Leave a review!</h3>
         <div class="form-group">
           <label for="modal-review-rating">Rating:</label>
           <select id="modal-review-rating" name="rating" required>
@@ -302,20 +325,21 @@ function openProductModal(itemName) {
         </div>
         <div id="modal-review-error" style="color:#e57373;margin-top:0.5em;"></div>
       </form>
-      <div class="modal-reviews-section" style="margin-top:2.5em;">
-        <h3 style="color:#1976d2;">Reviews</h3>
-        <div id="modal-reviews-list">
-          ${reviews.length === 0 ? '<p style="color:#888;">No reviews yet.</p>' : reviews.map(r => `
-            <div class="review" data-review-id="${r.review_id}">
-              <div class="review-header">
-                <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
-                <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
-                <span class="review-date">${formatMST(r.timestamp)}</span>
-                ${isAdminUser() ? `<button class="review-delete-btn action-btn delete" title="Delete Review" style="margin-left:0.5em;">Remove</button>` : ''}
-              </div>
-              <div class="review-text">${r.review_text}</div>
-            </div>
-          `).join('')}
+              <div class="modal-reviews-section">
+          <h3>Reviews</h3>
+                    <div id="modal-reviews-list">
+              ${reviews.length === 0 ? '<p style="color:#888;">No reviews yet.</p>' : reviews.map(r => `
+                <div class="review" data-review-id="${r.review_id}">
+                  <div class="review-header">
+                    <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
+                    <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+                    <span class="review-date">${formatMST(r.timestamp)}</span>
+                    ${isAdminUser() ? `<button class="review-delete-btn action-btn delete" title="Delete Review">Remove</button>` : ''}
+                  </div>
+                  <div class="review-text">${r.review_text}</div>
+                </div>
+              `).join('')}
+          </div>
         </div>
       </div>
     `;
@@ -364,7 +388,7 @@ function openProductModal(itemName) {
                   <span class="review-user">${r.username ? r.username : 'Anonymous'}</span>
                   <span class="review-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
                   <span class="review-date">${formatMST(r.timestamp)}</span>
-                  ${isAdminUser() ? `<button class="review-delete-btn action-btn delete" title="Delete Review" style="margin-left:0.5em;">Remove</button>` : ''}
+                  ${isAdminUser() ? `<button class="review-delete-btn action-btn delete" title="Delete Review">Remove</button>` : ''}
                 </div>
                 <div class="review-text">${r.review_text}</div>
               </div>
@@ -510,7 +534,7 @@ function renderProductCards() {
     } else if (quantity <= 5) {
       stockBadge = `<span class="stock-badge low-stock">Only ${quantity} left</span>`;
     } else {
-      stockBadge = `<span class="stock-badge in-stock">${quantity} available</span>`;
+      stockBadge = '<span class="stock-badge in-stock">Available</span>';
     }
     
     return `
@@ -726,70 +750,498 @@ function renderItems(items) {
   document.head.appendChild(style);
 })();
 
-// --- Modal Styles ---
+// --- Modern Modal Styles ---
 (function() {
   const style = document.createElement('style');
   style.innerHTML = `
+    /* Modal Overlay - Enhanced */
     #product-modal.modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: var(--color-modal-overlay); z-index: 1000;
-      display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.2s;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-modal-overlay);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      padding: 1rem;
     }
+    
+    /* Modern Modal Container */
     #product-modal .modal {
-      background: var(--color-card-bg); border-radius: 10px;
-      box-shadow: 0 4px 24px var(--color-shadow-hover);
-      padding: 2rem 2.5rem; min-width: 320px; max-width: 95vw;
-      z-index: 1001; position: relative; animation: modalIn 0.2s;
+      background: var(--color-card-bg);
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(25, 118, 210, 0.15), 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 0;
+      min-width: 360px;
+      max-width: 90vw;
+      max-height: 90vh;
+      width: 100%;
+      max-width: 800px;
+      z-index: 1001;
+      position: relative;
+      animation: modalIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       transition: background-color 0.3s ease;
+      overflow: hidden;
+      border: 1px solid var(--color-border-light);
     }
+    
     @keyframes modalIn {
-      from { transform: scale(0.95); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+      from { 
+        transform: scale(0.9) translateY(20px); 
+        opacity: 0; 
+      }
+      to { 
+        transform: scale(1) translateY(0); 
+        opacity: 1; 
+      }
     }
-    #product-modal .modal-title {
-      font-size: 1.35rem; font-weight: 600; letter-spacing: 0.5px;
-      color: #1976d2; margin-bottom: 1.2rem;
+    
+         /* Modal Header */
+     .modal-header {
+       background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+       color: white;
+       padding: 1.25rem 2rem 1rem;
+       position: relative;
+       border-radius: 24px 24px 0 0;
+     }
+     
+     #product-modal .modal-title {
+       font-size: 1.4rem;
+       font-weight: 700;
+       letter-spacing: 0.5px;
+       color: white;
+       margin: 0;
+       line-height: 1.3;
+     }
+    
+         /* Modern Close Button */
+     #product-modal .modal-close {
+       position: absolute;
+       top: 1rem;
+       right: 1.5rem;
+       background: rgba(255, 255, 255, 0.15);
+       backdrop-filter: blur(10px);
+       border: 1px solid rgba(255, 255, 255, 0.2);
+       border-radius: 10px;
+       width: 36px;
+       height: 36px;
+       font-size: 1.3rem;
+       color: white;
+       cursor: pointer;
+       transition: all 0.3s ease;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+     }
+    
+    #product-modal .modal-close:hover {
+      background: rgba(244, 67, 54, 0.2);
+      border-color: rgba(244, 67, 54, 0.3);
+      transform: scale(1.05);
     }
-    #product-modal .modal-close {
-      position: absolute; top: 1.2rem; right: 1.2rem;
-      background: none; border: none; font-size: 2rem; color: #1976d2;
-      cursor: pointer; transition: color 0.2s;
+    
+         /* Modal Content Area */
+     .modal-content {
+       padding: 1.5rem 2rem;
+       overflow-y: auto;
+       max-height: calc(90vh - 100px);
+     }
+     
+     /* Product Main Section - Enhanced Layout */
+     #product-modal .modal-product-main {
+       display: grid;
+       grid-template-columns: 1fr 1.5fr;
+       gap: 2rem;
+       align-items: start;
+       margin-bottom: 2rem;
+     }
+    
+         /* Enhanced Product Image */
+     .modal-product-image-container {
+       position: relative;
+       background: var(--color-product-img-bg);
+       border-radius: 16px;
+       padding: 1.25rem;
+       box-shadow: 0 6px 24px var(--color-shadow);
+       transition: all 0.3s ease;
+     }
+     
+     #product-modal .modal-product-img {
+       width: 100%;
+       height: 200px;
+       object-fit: contain;
+       border-radius: 8px;
+       transition: all 0.3s ease;
+     }
+    
+    .modal-product-image-container:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 40px var(--color-shadow-hover);
     }
-    #product-modal .modal-close:hover { color: #f27a12; }
-    #product-modal .modal-product-main { display: flex; gap: 2rem; align-items: flex-start; }
-    #product-modal .modal-product-img { width: 140px; height: 140px; object-fit: contain; border-radius: 8px; background: var(--color-product-img-bg); box-shadow: 0 1px 4px var(--color-shadow-light); transition: background-color 0.3s ease; }
-    #product-modal .modal-product-info { flex: 1; color: var(--color-fg); }
-    #product-modal .modal-product-price { font-size: 1.2em; font-weight: bold; margin-top: 0.5em; color: #1976d2; }
-    #product-modal .modal-reviews-section { margin-top: 2em; }
-    #product-modal .review { border-bottom: 1px solid var(--color-border-light); padding: 0.5em 0; transition: border-color 0.3s ease; }
-    #product-modal .review-header { display: flex; gap: 1em; font-size: 0.95em; color: var(--color-text-secondary); align-items: center; }
-    #product-modal .review-rating { color: #fbc02d; font-size: 1.1em; }
-    #product-modal .review-user { font-weight: bold; color: #1976d2; }
-    #product-modal .review-date { font-size: 0.9em; color: var(--color-text-muted); }
-    #product-modal .review-text { margin-top: 0.2em; color: var(--color-fg); }
-    #product-modal .modal-loading, #product-modal .modal-error { text-align: center; margin: 2em 0; color: var(--color-text-muted); }
-    #product-modal #modal-review-form { margin-top: 1.5em; }
-    #product-modal .form-group { margin-bottom: 1rem; }
-    #product-modal .form-group label { display: block; font-weight: bold; margin-bottom: 0.3rem; color: #1976d2; }
-    #product-modal .form-group input, #product-modal .form-group textarea, #product-modal .form-group select {
-      display: block; width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--color-border); font-size: 1rem;
-      margin-bottom: 0.2rem; background: var(--color-input-bg); color: var(--color-fg);
-      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    
+    /* Product Info Section */
+    #product-modal .modal-product-info {
+      flex: 1;
+      color: var(--color-fg);
     }
-    #product-modal .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
+    
+         #product-modal .product-name {
+       font-size: 1.3rem;
+       font-weight: 700;
+       color: #1976d2;
+       margin: 0 0 0.75rem 0;
+       line-height: 1.3;
+     }
+     
+     #product-modal .product-desc {
+       font-size: 1rem;
+       color: var(--color-text-secondary);
+       line-height: 1.5;
+       margin-bottom: 1.25rem;
+     }
+     
+     /* Modern Price Display */
+     #product-modal .modal-product-price {
+       font-size: 1.6rem;
+       font-weight: 800;
+       color: #1976d2;
+       margin-bottom: 1.25rem;
+       display: flex;
+       align-items: center;
+       gap: 0.5rem;
+     }
+    
+         /* Modern Add to Cart Button */
+     #product-modal #modal-add-cart-btn {
+       background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+       color: white;
+       border: none;
+       border-radius: 12px;
+       padding: 0.75rem 1.5rem;
+       font-weight: 700;
+       font-size: 1rem;
+       cursor: pointer;
+       transition: all 0.3s ease;
+       width: 100%;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       gap: 0.5rem;
+       box-shadow: 0 4px 16px rgba(25, 118, 210, 0.3);
+     }
+    
+    #product-modal #modal-add-cart-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(25, 118, 210, 0.4);
+      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+    }
+    
+    #product-modal #modal-add-cart-btn.sold-out-btn {
+      background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+      cursor: not-allowed;
+      box-shadow: 0 4px 16px rgba(244, 67, 54, 0.3);
+    }
+    
+         /* Reviews Section - Modern Design */
+     #product-modal .modal-reviews-section {
+       margin-top: 2rem;
+       padding-top: 1.5rem;
+       border-top: 2px solid var(--color-border-light);
+     }
+     
+     #product-modal .modal-reviews-section h3 {
+       font-size: 1.3rem;
+       font-weight: 700;
+       color: #1976d2;
+       margin-bottom: 1.25rem;
+       display: flex;
+       align-items: center;
+       gap: 0.5rem;
+     }
+    
+    #product-modal .modal-reviews-section h3::before {
+      content: "⭐";
+      font-size: 1.25rem;
+    }
+    
+         /* Enhanced Review Cards */
+     #product-modal .review {
+       background: var(--color-card-bg);
+       border: 1px solid var(--color-border-light);
+       border-radius: 12px;
+       padding: 1rem;
+       margin-bottom: 0.75rem;
+       transition: all 0.3s ease;
+       box-shadow: 0 2px 8px var(--color-shadow-light);
+     }
+    
+    #product-modal .review:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--color-shadow);
+      border-color: #1976d2;
+    }
+    
+         #product-modal .review-header {
+       display: flex;
+       align-items: center;
+       gap: 0.75rem;
+       margin-bottom: 0.75rem;
+       flex-wrap: wrap;
+     }
+    
+    #product-modal .review-user {
+      font-weight: 700;
+      color: #1976d2;
+      font-size: 1rem;
+    }
+    
+    #product-modal .review-rating {
+      color: #ffc107;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+    }
+    
+    #product-modal .review-date {
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      margin-left: auto;
+    }
+    
+    #product-modal .review-text {
+      color: var(--color-fg);
+      line-height: 1.6;
+      font-size: 1rem;
+    }
+    
+         /* Modern Review Form */
+     #product-modal #modal-review-form {
+       background: var(--color-card-bg);
+       border: 2px solid var(--color-border-light);
+       border-radius: 16px;
+       padding: 1.5rem;
+       margin-top: 1.5rem;
+       box-shadow: 0 4px 16px var(--color-shadow-light);
+     }
+     
+     #product-modal #modal-review-form h3 {
+       color: #1976d2;
+       font-size: 1.2rem;
+       font-weight: 700;
+       margin: 0 0 1.25rem 0;
+       display: flex;
+       align-items: center;
+       gap: 0.5rem;
+     }
+    
+    #product-modal #modal-review-form h3::before {
+      content: "✍️";
+      font-size: 1.1rem;
+    }
+    
+         #product-modal .form-group {
+       margin-bottom: 1.25rem;
+     }
+    
+    #product-modal .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #1976d2;
+      font-size: 1rem;
+    }
+    
+         #product-modal .form-group input,
+     #product-modal .form-group textarea,
+     #product-modal .form-group select {
+       display: block;
+       width: 100%;
+       padding: 0.75rem 1rem;
+       border-radius: 8px;
+       border: 2px solid var(--color-border);
+       font-size: 1rem;
+       background: var(--color-input-bg);
+       color: var(--color-fg);
+       transition: all 0.3s ease;
+       box-sizing: border-box;
+     }
+    
+    #product-modal .form-group input:focus,
+    #product-modal .form-group textarea:focus,
+    #product-modal .form-group select:focus {
+      outline: none;
+      border-color: #1976d2;
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+      transform: translateY(-1px);
+    }
+    
+         #product-modal .form-group textarea {
+       resize: vertical;
+       min-height: 80px;
+     }
+    
+         /* Modern Form Actions */
+     #product-modal .modal-actions {
+       display: flex;
+       gap: 1rem;
+       margin-top: 1.5rem;
+       justify-content: flex-end;
+     }
+    
     #product-modal .action-btn {
-      background: #1976d2; color: #fff; border: none; border-radius: 4px;
-      padding: 0.4rem 0.8rem; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: background 0.2s;
+      border: none;
+      border-radius: 12px;
+      padding: 0.875rem 1.5rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-    #product-modal .action-btn.cancel { background: #9e9e9e; }
-    #product-modal .action-btn.save, #product-modal .action-btn.add { background: #1976d2; }
-    #product-modal .action-btn.cancel:hover { background: #757575; }
-    #product-modal .action-btn.save:hover, #product-modal .action-btn.add:hover { background: #125ea7; }
-    @media (max-width: 700px) {
-      #product-modal .modal { padding: 1rem 0.5rem; }
-      #product-modal .modal-product-main { flex-direction: column; gap: 1rem; align-items: stretch; }
-      #product-modal .modal-product-img { width: 100%; height: 120px; }
+    
+    #product-modal .action-btn.add {
+      background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+      color: white;
+      box-shadow: 0 4px 16px rgba(25, 118, 210, 0.3);
+    }
+    
+    #product-modal .action-btn.add:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(25, 118, 210, 0.4);
+    }
+    
+    #product-modal .action-btn.cancel {
+      background: var(--color-border);
+      color: var(--color-text-secondary);
+      border: 2px solid var(--color-border);
+    }
+    
+    #product-modal .action-btn.cancel:hover {
+      background: var(--color-text-muted);
+      color: white;
+      transform: translateY(-1px);
+    }
+    
+    #product-modal .action-btn.delete {
+      background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+      color: white;
+      box-shadow: 0 4px 16px rgba(244, 67, 54, 0.3);
+    }
+    
+    #product-modal .action-btn.delete:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(244, 67, 54, 0.4);
+    }
+    
+    /* Loading and Error States */
+    #product-modal .modal-loading,
+    #product-modal .modal-error {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--color-text-muted);
+      font-size: 1.1rem;
+    }
+    
+    #product-modal .modal-loading::before {
+      content: "⏳";
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 1rem;
+    }
+    
+    #product-modal .modal-error {
+      color: #f44336;
+    }
+    
+    #product-modal .modal-error::before {
+      content: "❌";
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 1rem;
+    }
+    
+    /* Mobile Responsive Design */
+    @media (max-width: 768px) {
+      #product-modal .modal {
+        margin: 0.5rem;
+        border-radius: 20px;
+        max-width: calc(100vw - 1rem);
+      }
+      
+      .modal-header {
+        padding: 1.5rem 1.5rem 1rem;
+      }
+      
+      #product-modal .modal-title {
+        font-size: 1.4rem;
+        margin-right: 3rem;
+      }
+      
+      #product-modal .modal-close {
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+      }
+      
+      .modal-content {
+        padding: 1.5rem;
+      }
+      
+      #product-modal .modal-product-main {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      
+      #product-modal .modal-product-img {
+        height: 200px;
+      }
+      
+      #product-modal .modal-product-price {
+        font-size: 1.5rem;
+      }
+      
+      #product-modal .modal-actions {
+        flex-direction: column-reverse;
+      }
+      
+      #product-modal .action-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .modal-header {
+        padding: 1rem;
+      }
+      
+      #product-modal .modal-title {
+        font-size: 1.2rem;
+      }
+      
+      .modal-content {
+        padding: 1rem;
+      }
+      
+      .modal-product-image-container {
+        padding: 1rem;
+      }
+      
+      #product-modal .modal-product-img {
+        height: 160px;
+      }
+      
+      #product-modal #modal-review-form {
+        padding: 1.5rem;
+      }
     }
   `;
   document.head.appendChild(style);

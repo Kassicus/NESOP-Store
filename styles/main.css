@@ -454,6 +454,7 @@ body {
   overflow: hidden;
   cursor: pointer;
   border: 2px solid transparent;
+  position: relative;
 }
 
 .modern-product-card:hover {
@@ -471,25 +472,7 @@ body {
   border-color: #f44336;
 }
 
-/* Product Image Container */
-.product-image-container {
-  position: relative;
-  background: var(--color-product-img-bg);
-  height: 200px;
-  overflow: hidden;
-}
-
-.modern-product-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transition: transform 0.3s ease;
-  padding: 1rem;
-}
-
-.modern-product-card:hover .modern-product-img {
-  transform: scale(1.05);
-}
+/* Note: Product image styles moved to "Additional overflow protection" section below */
 
 /* Stock Badges */
 .stock-badge {
@@ -559,10 +542,7 @@ body {
   transform: scale(1.05);
 }
 
-/* Modern Product Info */
-.modern-product-info {
-  padding: 1.5rem;
-}
+/* Note: Modern product info styles moved to "Additional overflow protection" section below */
 
 .modern-product-name {
   color: #1976d2;
@@ -1119,4 +1099,40 @@ body {
   /* Soft wrap at 40 characters using ch unit */
   max-inline-size: 40ch;
   overflow-wrap: break-word;
+} 
+
+/* Additional overflow protection */
+.modern-product-card .product-image-container {
+  position: relative;
+  background: var(--color-product-img-bg);
+  height: 200px;
+  overflow: hidden !important;
+  border-radius: 16px 16px 0 0;
+  contain: layout style paint;
+}
+
+.modern-product-card .modern-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+  padding: 1rem;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.modern-product-card:hover .modern-product-img {
+  transform: scale(1.05);
+  /* Ensure scaled image stays within container */
+  transform-origin: center center;
+}
+
+/* Ensure product info section is separate from image area */
+.modern-product-info {
+  padding: 1.5rem;
+  position: relative;
+  z-index: 1;
+  background: var(--color-card-bg);
+  border-radius: 0 0 16px 16px;
 } 

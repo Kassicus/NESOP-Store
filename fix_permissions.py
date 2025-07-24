@@ -20,6 +20,38 @@ def setup_logging():
     )
     return logging.getLogger(__name__)
 
+def is_executable_file(file_path):
+    """Check if a file should have execute permissions"""
+    file_path = Path(file_path)
+    
+    # Check file extension
+    executable_extensions = {'.py', '.sh', '.pl', '.rb'}
+    if file_path.suffix in executable_extensions:
+        return True
+    
+    # Check if it's in a bin directory
+    if 'bin' in file_path.parts:
+        return True
+    
+    # Check if file has shebang
+    try:
+        with open(file_path, 'rb') as f:
+            first_line = f.readline()
+            if first_line.startswith(b'#!'):
+                return True
+    except (IOError, UnicodeDecodeError, PermissionError):
+        pass
+    
+    # Check if file was previously executable
+    try:
+        current_mode = file_path.stat().st_mode
+        if current_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
+            return True
+    except OSError:
+        pass
+    
+    return False
+
 def fix_upload_permissions(app_root="/opt/nesop-store"):
     """Fix permissions for the upload directory"""
     logger = setup_logging()
@@ -100,18 +132,30 @@ def fix_upload_permissions(app_root="/opt/nesop-store"):
                 file_path = root_path / file
                 os.chown(file_path, nesop_uid, www_data_gid)
                 
-                if 'assets' in root_path.parts:
-                    # Asset files: 664 (rw for owner and group, r for others)
-                    os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
+                # Check if file should be executable
+                if is_executable_file(file_path):
+                    if 'assets' in root_path.parts:
+                        # Executable asset files: 775 (rwx for owner and group, r-x for others)
+                        os.chmod(file_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+                        logger.debug(f"Set executable permissions for asset: {file_path}")
+                    else:
+                        # Executable files: 755 (rwx for owner, r-x for group and others)
+                        os.chmod(file_path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                        logger.debug(f"Set executable permissions for: {file_path}")
                 else:
-                    # Other files: 644 (rw for owner, r for group and others)
-                    os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+                    if 'assets' in root_path.parts:
+                        # Asset files: 664 (rw for owner and group, r for others)
+                        os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH)
+                    else:
+                        # Other files: 644 (rw for owner, r for group and others)
+                        os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
         
         logger.info(f"Successfully fixed permissions:")
         logger.info(f"  - Owner: nesop")
         logger.info(f"  - Group: {web_group}")
         logger.info(f"  - Assets directory: 775 permissions")
         logger.info(f"  - Other directories: 755 permissions")
+        logger.info(f"  - Executable files: 755/775 permissions (preserved)")
         logger.info(f"  - Asset files: 664 permissions")
         logger.info(f"  - Other files: 644 permissions")
         
