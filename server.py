@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 import db_utils
 import logging
 from datetime import datetime
@@ -986,16 +986,49 @@ def add_item():
         return jsonify({'error': 'Item already exists.'}), 409
     image_filename = None
     if image_file and image_file.filename:
+        # Validate file type
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'}
         ext = os.path.splitext(image_file.filename)[1].lower()
+        
+        if ext not in allowed_extensions:
+            return jsonify({'error': f'Invalid file type. Allowed types: {", ".join(allowed_extensions)}'}), 400
+        
+        # Generate safe filename
         safe_name = f"{item.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
         image_path = os.path.join(UPLOAD_FOLDER, safe_name)
-        image_file.save(image_path)
-        # Set correct ownership and permissions for uploaded file
-        set_file_ownership_and_permissions(image_path)
-        image_filename = f"assets/images/{safe_name}"
-    db_utils.add_item(item, description, float(price), image_filename, sold_out, unlisted, quantity)
-    logging.info(f"Admin added item: {item} (image: {image_filename}, sold_out: {sold_out}, unlisted: {unlisted}, quantity: {quantity})")
-    return jsonify({'success': True})
+        
+        try:
+            image_file.save(image_path)
+            
+            # Verify file was saved successfully
+            if not os.path.exists(image_path):
+                return jsonify({'error': 'Failed to save image file'}), 500
+            
+            # Set correct ownership and permissions
+            set_file_ownership_and_permissions(image_path)
+            
+            # Store relative path for database
+            image_filename = f"assets/images/{safe_name}"
+            
+            logging.info(f"Image uploaded successfully: {safe_name} -> {image_path}")
+            
+        except Exception as e:
+            logging.error(f"Failed to save image {safe_name}: {str(e)}")
+            return jsonify({'error': 'Failed to upload image'}), 500
+    
+    try:
+        db_utils.add_item(item, description, float(price), image_filename, sold_out, unlisted, quantity)
+        logging.info(f"Admin added item: {item} (image: {image_filename})")
+        return jsonify({'success': True})
+    except Exception as e:
+        # If database save fails but image was uploaded, clean up the file
+        if image_filename and os.path.exists(os.path.join(UPLOAD_FOLDER, os.path.basename(image_filename))):
+            try:
+                os.remove(os.path.join(UPLOAD_FOLDER, os.path.basename(image_filename)))
+            except:
+                pass
+        logging.error(f"Failed to add item to database: {str(e)}")
+        return jsonify({'error': 'Failed to save item'}), 500
 
 @app.route('/api/items', methods=['PUT'])
 def update_item():
@@ -1140,7 +1173,27 @@ def serve_static(path):
 # Serve images from assets/images
 @app.route('/assets/images/<path:filename>')
 def serve_image(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    # Validate filename to prevent directory traversal
+    if '..' in filename or '/' in filename.replace('/', ''):
+        abort(404)
+    
+    # Check if file exists
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    if not os.path.exists(file_path):
+        # Return placeholder image if original doesn't exist
+        placeholder_path = os.path.join(UPLOAD_FOLDER, 'placeholder.png')
+        if os.path.exists(placeholder_path):
+            response = send_from_directory(UPLOAD_FOLDER, 'placeholder.png')
+        else:
+            abort(404)
+    else:
+        response = send_from_directory(UPLOAD_FOLDER, filename)
+    
+    # Set proper cache headers
+    response.headers['Cache-Control'] = 'public, max-age=31536000'  # 1 year
+    if os.path.exists(file_path):
+        response.headers['ETag'] = f'"{filename}-{int(os.path.getmtime(file_path))}"'
+    return response
 
 if __name__ == '__main__':
     app.run(port=8001, debug=True) 

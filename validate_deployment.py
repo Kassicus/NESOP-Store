@@ -134,11 +134,13 @@ class DeploymentValidator:
             )''')
             
             cursor.execute('''CREATE TABLE IF NOT EXISTS items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                price REAL NOT NULL,
+                item TEXT PRIMARY KEY,
+                description TEXT,
+                price REAL,
                 image TEXT,
-                description TEXT
+                sold_out INTEGER DEFAULT 0,
+                unlisted INTEGER DEFAULT 0,
+                quantity INTEGER DEFAULT 0
             )''')
             
             cursor.execute('''CREATE TABLE IF NOT EXISTS purchases (

@@ -76,7 +76,8 @@ def create_update_package(version=None, include_files=None, include_migrations=T
     migration_files = [
         'migrate_ad_integration.py',
         'migrate_items_to_sqlite.py',
-        'migrate_quantity_tracking.py'
+        'migrate_quantity_tracking.py',
+        'migrate_items_schema_fix.py'
     ]
     
     # Utility files

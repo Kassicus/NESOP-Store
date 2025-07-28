@@ -318,6 +318,17 @@ def get_item(item_name):
     return item
 
 def add_item(item, description, price, image=None, sold_out=0, unlisted=0, quantity=0):
+    # Validate image path if provided
+    if image:
+        # Ensure image path starts with assets/images/
+        if not image.startswith('assets/images/'):
+            image = f"assets/images/{image}"
+        
+        # Check if file actually exists
+        actual_path = os.path.join(os.path.dirname(__file__), image)
+        if not os.path.exists(actual_path):
+            logger.warning(f"Image file does not exist: {actual_path}, storing reference anyway")
+    
     conn = get_db_connection()
     c = conn.cursor()
     c.execute('INSERT INTO items (item, description, price, image, sold_out, unlisted, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)', (item, description, price, image, sold_out, unlisted, quantity))
@@ -607,6 +618,43 @@ def update_ad_sync_timestamp(username: str) -> bool:
     except Exception as e:
         logger.error(f"Error updating AD sync timestamp for {username}: {str(e)}")
         return False
+
+def validate_image_references():
+    """Check if all image references in database point to actual files"""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    try:
+        c.execute('SELECT item, image FROM items WHERE image IS NOT NULL AND image != ""')
+        items_with_images = c.fetchall()
+        
+        missing_images = []
+        for item_name, image_path in items_with_images:
+            if image_path:
+                # Construct full file path
+                if image_path.startswith('assets/images/'):
+                    file_path = os.path.join(os.path.dirname(__file__), image_path)
+                else:
+                    file_path = os.path.join(os.path.dirname(__file__), 'assets', 'images', image_path)
+                
+                if not os.path.exists(file_path):
+                    missing_images.append({
+                        'item': item_name,
+                        'image_path': image_path,
+                        'full_path': file_path
+                    })
+        
+        if missing_images:
+            logger.warning(f"Found {len(missing_images)} items with missing image files:")
+            for missing in missing_images:
+                logger.warning(f"  - {missing['item']}: {missing['image_path']} -> {missing['full_path']}")
+        else:
+            logger.info("All image references validated successfully")
+        
+        return missing_images
+        
+    finally:
+        conn.close()
 
 # --- Order Management Functions ---
 
